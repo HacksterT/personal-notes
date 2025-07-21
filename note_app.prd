@@ -1,0 +1,252 @@
+# Personal Note Manager - Product Requirements Document
+**Version**: 2.0  
+**Date**: 2025-07-21  
+**Purpose**: Self-hosted personal note management system with complete separation from Sermon Organizer  
+
+## Executive Summary
+
+This document outlines the deployment of a completely separate personal note management system using the Sermon Organizer codebase as a foundation. The personal notes instance will be entirely isolated from the original sermon application, with separate databases, configurations, and deployment environments while maintaining AI functionality through a single reliable AI service.
+
+## Current Architecture Analysis
+
+### Multi-Container Setup (Current Development)
+The existing system runs 3 separate containers:
+1. **Backend** (`server`): FastAPI application on port 8000
+2. **Frontend-dev** (`frontend-dev`): Vite development server on port 5173  
+3. **Database** (`db`): PostgreSQL 15 on port 5432
+
+### Single Production Container (Current Production)
+The Dockerfile already supports single-container deployment by:
+- Building frontend assets in `frontend-builder` stage
+- Copying built assets to `/app/static` in backend container
+- Serving static files via FastAPI's StaticFiles middleware
+- Using Gunicorn with 4 Uvicorn workers
+
+## Deployment Strategy Recommendations
+
+### Option 1: Single Container + External PostgreSQL (RECOMMENDED)
+**Best for**: Personal note manager with reliable data persistence
+
+**Architecture**:
+- Single container: FastAPI backend + built frontend assets
+- External PostgreSQL: Either containerized or host-installed
+- Data persistence: PostgreSQL data directory mounted to NAS backup location
+
+**Advantages**:
+- Simple deployment with `docker run`
+- Reliable database backups to NAS
+- Clear separation of compute and data
+- Easy database administration
+- Production-ready architecture that scales to cloud
+
+**Implementation**:
+```bash
+# Database container with NAS backup mount
+docker run -d --name note-db \
+  -e POSTGRES_DB=notes_db \
+  -e POSTGRES_USER=notes_user \
+  -e POSTGRES_PASSWORD=secure_password \
+  -v /path/to/nas/backup:/var/lib/postgresql/data \
+  -p 5432:5432 postgres:15
+
+# Application container
+docker run -d --name note-app \
+  --link note-db:db \
+  -e DATABASE_URL=postgresql://notes_user:secure_password@db:5432/notes_db \
+  -p 8080:8000 note-manager:latest
+```
+
+## Instance Separation Strategy (UPDATED REQUIREMENTS)
+
+### Complete Environment Isolation
+**Requirement**: Personal notes instance must be completely separate from sermon app with zero interaction risk.
+
+**Recommended Approach: Separate Project Directory**
+```
+/projects/
+├── sermon-organizer/          # Original cloud deployment
+│   ├── compose.yaml          # Port 8000, sermon database
+│   ├── Dockerfile
+│   ├── .env                  # Cloud AI keys, sermon DB config
+│   └── [all existing files]
+└── personal-notes/            # Completely separate instance
+    ├── compose.yaml          # Port 8001, notes database  
+    ├── Dockerfile            # Same or reference original
+    ├── .env                  # Single AI service, notes DB config
+    └── [copied codebase]
+```
+
+### Database Separation Requirements
+**Completely Independent PostgreSQL Instances:**
+- **Sermon App**: `postgresql://sermon_user:pass@localhost:5432/sermon_organizer`
+- **Personal Notes**: `postgresql://notes_user:pass@localhost:5433/personal_notes`
+- Different ports, credentials, and database names
+- Separate NAS backup locations
+- Zero shared data or configuration
+
+### AI Service Configuration
+- **Keep AI Functionality**: Maintain content generation features
+- **Single AI Service**: Replace multiple AI providers (Claude/MiniMax/Grok) with one reliable service
+- **Separate API Keys**: Personal notes uses different API key from sermon app
+- **Same Interface**: Keep existing AI integration patterns
+
+### Port and Network Isolation
+- **Sermon Organizer**: Ports 8000 (app), 5432 (db), 5173 (dev)
+- **Personal Notes**: Ports 8001 (app), 5433 (db), 5174 (dev)
+- **Network Separation**: Different Docker networks or host networking
+- **Can Run Simultaneously**: Both instances operational without conflict
+
+### Configuration Management
+```bash
+# Sermon Organizer
+cd /projects/sermon-organizer
+docker-compose up  # Uses port 8000, sermon database
+
+# Personal Notes (different terminal)
+cd /projects/personal-notes  
+docker-compose up  # Uses port 8001, notes database
+```
+
+### Content and Terminology
+- **Keep "Sermons" Terminology**: No cosmetic changes required
+- **Same Database Schema**: Identical `content_items` table structure
+- **Same Features**: Full functionality including AI generation
+- **Different Data**: Completely separate content and databases
+
+## Cloud Deployment Preparation
+
+### Maintaining Dual-Purpose Architecture
+The recommended approach ensures the codebase can serve both purposes:
+
+1. **Shared Core**: Keep FastAPI backend, React frontend, and PostgreSQL
+2. **Feature Flags**: Use environment variables to enable/disable features
+3. **Separate Configurations**: Different docker-compose files for different purposes
+4. **Branching Strategy**: 
+   - `main`: Full sermon organizer with AI features
+   - `notes-only`: Personal note manager variant
+
+### Cloud-Ready Features to Preserve
+- Authentication system (disabled for personal use)
+- Multi-user support (single-user for personal use)
+- API rate limiting
+- Security middleware
+- Production logging
+- Health checks
+- Scalable database connections
+
+## Implementation Plan
+
+### Phase 1: Project Separation and Setup (DETAILED)
+
+#### 1.1 Directory Structure Creation
+- [ ] **1.1.1** Navigate to parent directory (`/home/hackstert/projects/`)
+- [ ] **1.1.2** Create new directory: `mkdir personal-notes`
+- [ ] **1.1.3** Copy entire sermon-organizer codebase: `cp -r sermon-organizer/* personal-notes/`
+- [ ] **1.1.4** Verify all files copied correctly (frontend/, backend/, compose.yaml, Dockerfile, etc.)
+- [ ] **1.1.5** Test that both directories exist and are independent
+
+#### 1.2 Port Configuration Updates
+- [ ] **1.2.1** Edit `personal-notes/compose.yaml` 
+- [ ] **1.2.2** Change server port mapping from `8000:8000` to `8001:8000`
+- [ ] **1.2.3** Change frontend-dev port mapping from `5173:5173` to `5174:5173`
+- [ ] **1.2.4** Change database port mapping from `5432:5432` to `5433:5432`
+- [ ] **1.2.5** Update any internal references to ports in configuration files
+- [ ] **1.2.6** Verify Dockerfile doesn't need port changes (internal port 8000 stays same)
+
+#### 1.3 Database Configuration Separation
+- [ ] **1.3.1** Update database service name in compose.yaml from `db` to `notes-db`
+- [ ] **1.3.2** Change database environment variables:
+  - `POSTGRES_DB=personal_notes` (was `sermon_organizer_dev`)
+  - `POSTGRES_USER=notes_user` (was `dev_user`) 
+  - `POSTGRES_PASSWORD=notes_password` (generate secure password)
+- [ ] **1.3.3** Update DATABASE_URL in server environment:
+  - From: `postgresql://dev_user:dev_password@db:5432/sermon_organizer_dev`
+  - To: `postgresql://notes_user:notes_password@notes-db:5432/personal_notes`
+- [ ] **1.3.4** Update any backend service references from `db` to `notes-db`
+
+#### 1.4 Environment Configuration
+- [ ] **1.4.1** Create new `.env` file in personal-notes directory
+- [ ] **1.4.2** Copy relevant environment variables from original .env
+- [ ] **1.4.3** Update database configuration in .env file
+- [ ] **1.4.4** Prepare AI service configuration (single provider - specific provider TBD)
+- [ ] **1.4.5** Remove or comment unused AI service keys (MiniMax, Grok if not using)
+- [ ] **1.4.6** Ensure no environment conflicts between instances
+
+#### 1.5 Docker Network Isolation
+- [ ] **1.5.1** Add custom network name to personal-notes compose.yaml
+- [ ] **1.5.2** Ensure network names differ between sermon-organizer and personal-notes
+- [ ] **1.5.3** Update service network references
+- [ ] **1.5.4** Test that networks don't overlap
+
+#### 1.6 NAS Backup Integration Setup
+- [ ] **1.6.1** Create NAS directory structure: `/nas/backup/personal-notes/`
+- [ ] **1.6.2** Update database volume mount in compose.yaml
+- [ ] **1.6.3** Set appropriate NAS permissions for PostgreSQL data directory
+- [ ] **1.6.4** Test NAS connectivity and write permissions
+- [ ] **1.6.5** Document backup path differences:
+  - Sermon organizer: `/nas/backup/sermon-organizer/`
+  - Personal notes: `/nas/backup/personal-notes/`
+
+#### 1.7 Configuration Validation
+- [ ] **1.7.1** Verify compose.yaml syntax is valid (`docker-compose config`)
+- [ ] **1.7.2** Check that all environment variables are properly set
+- [ ] **1.7.3** Confirm no hardcoded references to original ports/databases
+- [ ] **1.7.4** Validate that both instances can be built independently
+- [ ] **1.7.5** Test database initialization with new credentials
+
+#### 1.8 Documentation and Testing
+- [ ] **1.8.1** Document the new port assignments and access URLs:
+  - Personal notes: `http://localhost:8001`
+  - Sermon organizer: `http://localhost:8000` (unchanged)
+- [ ] **1.8.2** Create startup commands documentation for both instances
+- [ ] **1.8.3** Test individual instance startup (personal-notes only)
+- [ ] **1.8.4** Test simultaneous instance startup (both running)
+- [ ] **1.8.5** Verify complete isolation by checking database contents
+- [ ] **1.8.6** Document rollback procedures if needed
+
+### Phase 2: AI Service Consolidation (Overview)
+*Detailed tasks will be defined after Phase 1 completion*
+- Choose single AI provider
+- Remove unused AI services 
+- Update configuration
+- Test AI integration
+
+### Phase 3: Production Deployment (Overview)  
+*Detailed tasks will be defined after Phase 2 completion*
+- Build production images
+- Final database setup
+- Network isolation verification
+- Backup procedures implementation
+
+### Phase 4: Validation and Documentation (Overview)
+*Detailed tasks will be defined after Phase 3 completion*
+- Simultaneous operation testing
+- Data isolation verification
+- Backup/recovery testing
+- Final documentation
+
+## Technical Requirements
+
+### Local PC Requirements
+- Docker Engine 20.10+
+- 4GB RAM minimum (2GB for app, 2GB for PostgreSQL)
+- 10GB storage minimum
+- Network access to NAS for backups
+
+### NAS Integration
+- SMB/NFS mount for PostgreSQL data directory
+- Automated backup scripts
+- Version retention policy
+- Recovery procedures documentation
+
+### Security Considerations
+- Localhost-only access by default
+- Strong database passwords
+- Regular security updates
+- Data encryption for sensitive notes
+
+## Conclusion
+
+The **Single Container + External PostgreSQL** approach is recommended as it provides the best balance of simplicity, reliability, and future cloud deployment compatibility. The existing Dockerfile already supports this architecture, requiring minimal changes to implement a personal note management system while preserving the ability to deploy the full sermon organizer to the cloud.
+
+This approach ensures that both the personal note manager and the cloud-deployed sermon organizer can share the same codebase with appropriate configuration differences, maintaining development efficiency while serving distinct purposes.

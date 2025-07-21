@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:wght@300;400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================================
+   SIMPLIFIED LIBRARY THEME
+   =================================== */
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Crimson Text', serif;
+    background: #2c1810;
+    color: #f4f1e8;
+    min-height: 100vh;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ===================================
+   CORE COMPONENT STYLES
+   =================================== */
+
+@layer components {
+  /* Simplified Library Door */
+  .library-door {
+    @apply w-52 h-80 bg-gradient-to-b from-amber-900 to-amber-800
+           border-2 border-yellow-600 rounded-lg cursor-pointer
+           flex flex-col items-center justify-center
+           shadow-lg transition-colors duration-300;
+  }
+  
+  .library-door:hover {
+    @apply from-amber-800 to-amber-700 border-yellow-500;
+  }
+  
+  .door-handle {
+    @apply absolute right-4 top-1/2 transform -translate-y-1/2 
+           w-3 h-6 bg-yellow-600 rounded-sm;
+  }
+  
+  /* Content Cards */
+  .content-card {
+    @apply bg-white border border-gray-200 rounded-lg p-6 
+           transition-colors duration-200 cursor-pointer;
+  }
+  
+  .content-card:hover {
+    @apply border-yellow-600 shadow-md;
+  }
+  
+  /* Bible Verse Cards */
+  .verse-card {
+    @apply bg-white border border-yellow-300 rounded-lg p-6 mb-4
+           shadow-sm;
+  }
+  
+  /* Navigation Items */
+  .nav-item {
+    @apply px-3 py-2 cursor-pointer rounded transition-colors duration-200
+           text-yellow-200;
+  }
+  
+  .nav-item:hover {
+    @apply bg-yellow-600/10 text-white;
+  }
+  
+  .nav-item.active {
+    @apply bg-yellow-600/20 text-white border-l-2 border-yellow-600;
+  }
+  
+  /* Form Inputs */
+  .library-input {
+    @apply bg-yellow-50 border-2 border-yellow-300 rounded-lg px-4 py-3
+           text-gray-800 transition-colors duration-200;
+  }
+  
+  .library-input:focus {
+    @apply outline-none border-yellow-600;
+  }
+  
+  /* Buttons */
+  .btn-primary {
+    @apply bg-yellow-600 text-white px-4 py-2 rounded
+           transition-colors duration-200;
+  }
+  
+  .btn-primary:hover {
+    @apply bg-yellow-700;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-600 text-white px-4 py-2 rounded
+           transition-colors duration-200;
+  }
+  
+  .btn-secondary:hover {
+    @apply bg-gray-700;
+  }
+  
+  /* Study Workspace */
+  .study-workspace {
+    @apply bg-yellow-50 text-gray-800 p-8 rounded-lg shadow-sm;
+  }
+  
+  /* Library Stack Items */
+  .library-item {
+    @apply bg-orange-800/30 border-2 border-yellow-600 rounded-xl p-6
+           cursor-pointer transition-colors duration-200;
+  }
+  
+  .library-item:hover {
+    @apply bg-orange-700/60;
+  }
+  
+  /* Add this for the selected state */
+  .library-item.selected {
+    @apply bg-orange-200/60 border-yellow-500;
+  }
+  
+  /* Chat Interface */
+  .chat-message {
+    @apply bg-yellow-100 border-l-4 border-yellow-600 rounded-r-lg p-4 mb-4;
+  }
+  
+  .chat-input {
+    @apply bg-yellow-100 border border-yellow-300 rounded-lg p-3 
+           text-gray-800 resize-none min-h-16;
+  }
+  
+  .chat-input:focus {
+    @apply outline-none border-yellow-600;
+  }
+  
+  .chat-input::placeholder {
+    @apply text-gray-500;
+  }
+}
+
+/* ===================================
+   UTILITY CLASSES
+   =================================== */
+
+@layer utilities {
+  /* Custom scrollbar */
+  .library-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .library-scrollbar::-webkit-scrollbar-track {
+    @apply bg-gray-200;
+  }
+  
+  .library-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-yellow-600 rounded;
+  }
+  
+  .library-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-yellow-700;
+  }
+  
+  /* Simple glass effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+}

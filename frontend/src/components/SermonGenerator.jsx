@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Edit3, ChevronDown, Save, Loader2, Eye, Edit } from 'lucide-react';
 import NavigationMenu from './Library/NavigationMenu';
@@ -125,6 +125,10 @@ const SermonGenerator = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [editableContent, setEditableContent] = useState('');
+  
+  // Resizable panel state
+  const [leftPanelWidth, setLeftPanelWidth] = useState(40); // percentage (40% left, 60% right)
+  const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -186,6 +190,69 @@ const SermonGenerator = () => {
     };
     
     loadCuratedContent();
+    
+    // Check for sermon editing content from LibraryStacks
+    const loadEditingSermon = () => {
+      try {
+        const editingSermon = localStorage.getItem('editingSermon');
+        if (editingSermon) {
+          const sermon = JSON.parse(editingSermon);
+          console.log('✏️ Loading sermon for editing:', sermon.title);
+          
+          setSermonTitle(sermon.title);
+          setEditableContent(sermon.content);
+          setGeneratedSermon(sermon.content);
+          setIsEditingContent(true);
+          
+          // Clear the editing sermon from localStorage after loading
+          localStorage.removeItem('editingSermon');
+          
+          return true; // Indicate that a sermon was loaded for editing
+        }
+      } catch (error) {
+        console.error('Failed to load editing sermon:', error);
+      }
+      return false;
+    };
+    
+    const wasSermonLoaded = loadEditingSermon();
+    
+    // Load session data from localStorage
+    const loadSessionData = () => {
+      try {
+        const savedInputText = localStorage.getItem('sermonGenerator_inputText');
+        const savedGeneratedSermon = localStorage.getItem('sermonGenerator_generatedSermon');
+        const savedSermonTitle = localStorage.getItem('sermonGenerator_sermonTitle');
+        const savedEditableContent = localStorage.getItem('sermonGenerator_editableContent');
+        
+        if (savedInputText) {
+          setInputText(savedInputText);
+          console.log('📝 Loaded sermon notes from session memory');
+        }
+        
+        if (savedGeneratedSermon) {
+          setGeneratedSermon(savedGeneratedSermon);
+          console.log('📜 Loaded generated sermon from session memory');
+        }
+        
+        if (savedSermonTitle) {
+          setSermonTitle(savedSermonTitle);
+          console.log('📋 Loaded sermon title from session memory');
+        }
+        
+        if (savedEditableContent) {
+          setEditableContent(savedEditableContent);
+          console.log('✏️ Loaded editable content from session memory');
+        }
+      } catch (error) {
+        console.error('Failed to load session data:', error);
+      }
+    };
+    
+    // Only load session data if no curated content was loaded and no sermon is being edited
+    if (!localStorage.getItem('curatedSermonContent') && !wasSermonLoaded) {
+      loadSessionData();
+    }
   }, []);
 
   // Session memory update function
@@ -274,6 +341,86 @@ Discussion questions for small groups:
     // Update session memory with template info
     updateSessionMemory('theme', type);
   };
+
+  // Resizable panel handlers
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Mouse down - starting drag');
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    
+    const container = document.querySelector('[data-resize-container]');
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+    
+    console.log('Dragging:', newLeftWidth.toFixed(1) + '%');
+    
+    // Set minimum and maximum widths
+    const minWidth = 25; // Minimum 25% for buttons/dropdowns
+    const maxWidth = 75; // Maximum 75% to keep right panel usable
+    
+    if (newLeftWidth >= minWidth && newLeftWidth <= maxWidth) {
+      setLeftPanelWidth(newLeftWidth);
+    }
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    console.log('Mouse up - ending drag');
+    setIsDragging(false);
+  }, []);
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Auto-save session data when content changes
+  useEffect(() => {
+    if (inputText) {
+      localStorage.setItem('sermonGenerator_inputText', inputText);
+    }
+  }, [inputText]);
+
+  useEffect(() => {
+    if (generatedSermon) {
+      localStorage.setItem('sermonGenerator_generatedSermon', generatedSermon);
+    }
+  }, [generatedSermon]);
+
+  useEffect(() => {
+    if (sermonTitle) {
+      localStorage.setItem('sermonGenerator_sermonTitle', sermonTitle);
+    }
+  }, [sermonTitle]);
+
+  useEffect(() => {
+    if (editableContent) {
+      localStorage.setItem('sermonGenerator_editableContent', editableContent);
+    }
+  }, [editableContent]);
 
   const handleGenerate = async () => {
     if (!inputText.trim()) {
@@ -405,7 +552,7 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
       `;
 
       // Make API call to backend sermon generation endpoint
-      const response = await fetch('/api/sermon/generate', {
+      const response = await fetch(`${apiService.baseURL}/api/sermon/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -460,9 +607,33 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
   };
 
   const handleClear = () => {
+    // Check if there's any content to potentially lose
+    const hasContent = inputText.trim() || generatedSermon.trim() || sermonTitle.trim() || editableContent.trim();
+    
+    if (hasContent) {
+      const userConfirmed = window.confirm(
+        'Have you saved any changes?\n\nThis will permanently clear all sermon content, notes, and generated text.\n\nClick "OK" to clear everything, or "Cancel" to keep your content.'
+      );
+      
+      if (!userConfirmed) {
+        console.log('🚫 Clear operation cancelled by user');
+        return; // User cancelled, don't clear anything
+      }
+    }
+    
+    // User confirmed or no content to lose - proceed with clearing
     setInputText('');
     setGeneratedSermon('');
+    setSermonTitle('');
+    setEditableContent('');
     setError('');
+    
+    // Clear localStorage session data
+    localStorage.removeItem('sermonGenerator_inputText');
+    localStorage.removeItem('sermonGenerator_generatedSermon');
+    localStorage.removeItem('sermonGenerator_sermonTitle');
+    localStorage.removeItem('sermonGenerator_editableContent');
+    
     // Reset session memory except start time
     setSessionMemory(prev => ({
       theme: '',
@@ -471,6 +642,8 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
       audience: '',
       sessionStartTime: prev.sessionStartTime
     }));
+    
+    console.log('🧹 Cleared all session memory and content');
   };
 
   // Extract title from sermon content
@@ -480,12 +653,27 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
     const lines = sermon.split('\n');
     for (let line of lines) {
       line = line.trim();
-      // Look for first heading or title-like line
+      
+      // Skip problematic patterns that aren't real titles
+      if (line.toLowerCase().startsWith('the outline includes') ||
+          line.toLowerCase().startsWith('source:') ||
+          line.toLowerCase().startsWith('generated:') ||
+          line.toLowerCase().startsWith('=== ')) {
+        continue;
+      }
+      
+      // Look for markdown headings first
       if (line.startsWith('# ')) {
         return line.substring(2).trim();
       } else if (line.startsWith('## ')) {
         return line.substring(3).trim();
-      } else if (line.length > 10 && line.length < 100 && !line.includes('.') && line.match(/^[A-Z]/)) {
+      } 
+      // Then look for title-like lines
+      else if (line.length > 5 && line.length < 100 && 
+               !line.includes('.') && 
+               line.match(/^[A-Z]/) &&
+               !line.includes('–') && // Skip "Source: Title – Subtitle" patterns
+               line.split(' ').length <= 10) { // Reasonable word count for titles
         return line;
       }
     }
@@ -649,7 +837,7 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
     <div className="min-h-screen bg-library-gradient">
       <div style={{ 
         fontFamily: 'Crimson Text, serif',
-        maxWidth: '1400px', 
+        maxWidth: '1600px', 
         margin: '0 auto',
         color: '#f4f1e8',
         padding: '0 20px 20px 20px'
@@ -668,7 +856,7 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
           </div>
           
           <div className="text-brass-light text-sm">
-            AI-Powered Sermon Development with Intelligent Memory
+            {/* Space reserved for future content */}
           </div>
         </div>
         
@@ -736,11 +924,26 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
 
         </div>
 
-        {/* Main Content Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '30px' }}>
+        {/* Main Content Grid - Resizable */}
+        <div 
+          data-resize-container
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: `${leftPanelWidth}% 4px ${100 - leftPanelWidth}%`,
+            height: 'calc(100vh - 200px)',
+            gap: '0'
+          }}
+        >
           
           {/* Input Section */}
-          <div style={{ backgroundColor: '#f4f1e8', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+          <div style={{ 
+            backgroundColor: '#f4f1e8', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            marginRight: '15px',
+            overflow: 'hidden'
+          }}>
             <h2 style={{ 
               fontSize: '24px', 
               fontWeight: '600', 
@@ -893,8 +1096,38 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
             </div>
           </div>
 
+          {/* Drag Handle */}
+          <div
+            onMouseDown={handleMouseDown}
+            style={{
+              width: '4px',
+              backgroundColor: isDragging ? '#d4af37' : '#e0e0e0',
+              cursor: 'col-resize',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s'
+            }}
+            title="Drag to resize panels"
+          >
+            <div style={{
+              width: '2px',
+              height: '40px',
+              backgroundColor: isDragging ? '#654321' : '#a0a0a0',
+              borderRadius: '1px'
+            }} />
+          </div>
+
           {/* Output Section */}
-          <div style={{ backgroundColor: '#f4f1e8', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+          <div style={{ 
+            backgroundColor: '#f4f1e8', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            marginLeft: '15px',
+            overflow: 'hidden'
+          }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ 
                 fontSize: '24px', 
@@ -1168,36 +1401,6 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
           </div>
         </div>
 
-        {/* Phase Development Info */}
-        <div style={{ 
-          marginTop: '40px', 
-          padding: '20px',
-          backgroundColor: 'rgba(139, 69, 19, 0.1)',
-          borderRadius: '8px',
-          border: '1px solid rgba(139, 69, 19, 0.3)'
-        }}>
-          <h3 style={{ color: '#8B4513', marginTop: '0' }}>Memory System Development Phases</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', fontSize: '14px' }}>
-            <div>
-              <strong style={{ color: '#28a745' }}>✅ Phase 1: Session Memory</strong>
-              <p style={{ margin: '5px 0', color: '#f4f1e8' }}>
-                Currently active - tracks theme, audience, and key points during current session
-              </p>
-            </div>
-            <div>
-              <strong style={{ color: '#ffc107' }}>🔄 Phase 2: Short-term Memory</strong>
-              <p style={{ margin: '5px 0', color: '#f4f1e8' }}>
-                Coming next - remember recent sermons, topics, and congregation feedback across sessions
-              </p>
-            </div>
-            <div>
-              <strong style={{ color: '#17a2b8' }}>📚 Phase 3: Long-term Memory</strong>
-              <p style={{ margin: '5px 0', color: '#f4f1e8' }}>
-                Final phase - permanent knowledge graph of theological concepts, sermon history, and relationships
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Footer */}
         <footer style={{ 
@@ -1208,9 +1411,9 @@ Generate a ${outputFormat === 'full' ? 'complete sermon manuscript' : outputForm
           color: '#c9b037',
           fontSize: '14px'
         }}>
-          <p>Sermon Workshop with Intelligent Memory System • Phase 1: Session Memory Active</p>
-          <p style={{ fontSize: '12px', marginTop: '5px' }}>
-            Building towards comprehensive AI-powered pastoral tools with persistent learning
+          <p>Personal Note Manager - Sermon Workshop</p>
+          <p style={{ fontSize: '12px', marginTop: '5px', opacity: 0.8 }}>
+            © 2025 Personal Note Manager. All rights reserved. • AI-powered sermon preparation and content organization.
           </p>
         </footer>
       </div>

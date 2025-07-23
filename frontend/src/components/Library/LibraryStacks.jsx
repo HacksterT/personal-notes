@@ -22,6 +22,63 @@ import {
 
 // Import our API service and navigation
 import { apiService } from '../../services/api';
+
+// Simple markdown renderer for sermon content
+const MarkdownRenderer = ({ content }) => {
+  const renderMarkdown = (text) => {
+    let html = text;
+    
+    // Handle scripture references (custom formatting)
+    html = html.replace(/\*Scripture: (.*?)\*/g, '<div class="scripture"><strong>Scripture:</strong> $1</div>');
+    
+    // Handle headings
+    html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+    
+    // Handle bold text
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Handle italic text
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    // Handle line breaks (convert double newlines to paragraphs)
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = '<p>' + html + '</p>';
+    
+    // Clean up empty paragraphs
+    html = html.replace(/<p><\/p>/g, '');
+    html = html.replace(/<p>\s*<h/g, '<h');
+    html = html.replace(/<\/h([123])>\s*<\/p>/g, '</h$1>');
+    
+    return html;
+  };
+
+  const styles = `
+    h1 { font-size: 22px; font-weight: 600; margin: 16px 0 8px 0; color: #654321; }
+    h2 { font-size: 19px; font-weight: 600; margin: 14px 0 6px 0; color: #654321; }
+    h3 { font-size: 17px; font-weight: 600; margin: 12px 0 4px 0; color: #654321; }
+    p { margin: 8px 0; line-height: 1.5; }
+    strong { color: #654321; }
+    em { font-style: italic; color: #8B4513; }
+    .scripture {
+      background: #f8f6f0;
+      border-left: 3px solid #D4A574;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border-radius: 4px;
+      font-style: italic;
+    }
+  `;
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+    </>
+  );
+};
+import TagBoxes from '../TagBoxes';
 import NavigationMenu from './NavigationMenu';
 
 const LibraryStacks = () => {
@@ -36,8 +93,16 @@ const LibraryStacks = () => {
   const [categoryContent, setCategoryContent] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [updatingTags, setUpdatingTags] = useState(new Set());
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'list'
   const [filterMode, setFilterMode] = useState('all'); // 'all', 'recent', 'favorites', 'shared'
+  const [sortMode, setSortMode] = useState('date'); // 'date', 'title', 'category' (removed 'tags')
+  const [multiTagFilters, setMultiTagFilters] = useState([
+    { tag: '', operator: 'AND' },
+    { tag: '', operator: 'AND' },
+    { tag: '', operator: 'AND' }
+  ]); // 3 tag filters with individual AND/OR operators
+  const [allContent, setAllContent] = useState([]); // All content across categories for list view
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -74,6 +139,13 @@ const LibraryStacks = () => {
       }
     }
   }, [searchQuery]);
+
+  // Load all content when switching to list view
+  useEffect(() => {
+    if (viewMode === 'list' && Object.keys(categories).length > 0) {
+      loadAllContent();
+    }
+  }, [viewMode, categories]);
 
   // Add this useEffect to reset state on category changes
 useEffect(() => {
@@ -295,6 +367,39 @@ useEffect(() => {
     }
   };
 
+  // Handle tag changes with API call
+  const handleTagsChange = async (contentId, newTags) => {
+    setUpdatingTags(prev => new Set(prev).add(contentId));
+    
+    try {
+      console.log(`Updating tags for ${contentId}:`, newTags);
+      
+      // Real API call
+      await apiService.updateContentTags(contentId, newTags);
+      
+      // Update local state
+      setCategoryContent(prevContent => 
+        prevContent.map(item => 
+          item.id === contentId 
+            ? { ...item, tags: newTags }
+            : item
+        )
+      );
+      
+      console.log('Tags updated successfully');
+      
+    } catch (error) {
+      console.error('Failed to update tags:', error);
+      throw error; // Re-throw so TagBoxes can handle the error
+    } finally {
+      setUpdatingTags(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(contentId);
+        return newSet;
+      });
+    }
+  };
+
   const handleContentAction = async (action, item) => {
     console.log(`${action} action on:`, item.title);
     
@@ -314,9 +419,36 @@ useEffect(() => {
         break;
       case 'edit':
         console.log('✏️ Editing:', item.title);
+        
+        if (item.category === 'sermons') {
+          // Handle sermon editing - redirect to Sermon Generator
+          if (window.confirm('You have chosen to go to the Sermon Generator for edits. Are you sure?')) {
+            try {
+              // Get the full content
+              const fullContent = await apiService.getContent(item.id);
+              
+              // Store the content in localStorage for the Sermon Generator
+              localStorage.setItem('editingSermon', JSON.stringify({
+                id: fullContent.id,
+                title: fullContent.title,
+                content: fullContent.content,
+                category: fullContent.category,
+                filename: fullContent.filename
+              }));
+              
+              // Navigate to sermon generator
+              navigate('/workshop');
+            } catch (err) {
+              console.error('Failed to load sermon for editing:', err);
+              alert('Failed to load sermon content. Please try again.');
+            }
+          }
+          return;
+        }
+        
         // Only allow editing of Study Notes and Journal items
         if (item.category !== 'study-notes' && item.category !== 'journal') {
-          alert('Only Study Notes and Journal entries can be edited.');
+          alert('Only Study Notes, Journal entries, and Sermons can be edited.');
           return;
         }
         
@@ -388,6 +520,7 @@ useEffect(() => {
             size: formatFileSize(item.size_bytes || 0),
             content: item.content || '',
             key_themes: item.key_themes || [], // Include themes for sermon curation
+            tags: item.tags || [], // Include tags for resource viewer
             date_created: item.date_created,
             date_modified: item.date_modified
           };
@@ -426,8 +559,124 @@ useEffect(() => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
+  const sortContent = (content, sortBy) => {
+    if (!content || content.length === 0) return content;
+    
+    const sortedContent = [...content];
+    
+    switch (sortBy) {
+      case 'title':
+        return sortedContent.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        
+      case 'category':
+        return sortedContent.sort((a, b) => (a.category || '').localeCompare(b.category || ''));
+        
+        
+      case 'date':
+      default:
+        return sortedContent.sort((a, b) => {
+          const aDate = new Date(a.date_modified || a.date_created || 0);
+          const bDate = new Date(b.date_modified || b.date_created || 0);
+          return bDate - aDate; // Most recent first
+        });
+    }
+  };
+
+  const filterContentByMultiTags = (content, filters) => {
+    // Get active filters (those with a tag selected)
+    const activeFilters = filters.filter(filter => filter.tag && filter.tag.trim() !== '');
+    
+    if (activeFilters.length === 0) return content;
+    
+    return content.filter(item => {
+      if (!item.tags || item.tags.length === 0) return false;
+      
+      const andFilters = activeFilters.filter(f => f.operator === 'AND');
+      const orFilters = activeFilters.filter(f => f.operator === 'OR');
+      
+      // ALL AND filters must match
+      const andMatches = andFilters.every(filter => 
+        item.tags.some(itemTag => 
+          itemTag.toLowerCase().includes(filter.tag.toLowerCase())
+        )
+      );
+      
+      // At least ONE OR filter must match (if any OR filters exist)
+      const orMatches = orFilters.length === 0 || orFilters.some(filter => 
+        item.tags.some(itemTag => 
+          itemTag.toLowerCase().includes(filter.tag.toLowerCase())
+        )
+      );
+      
+      return andMatches && orMatches;
+    });
+  };
+
+  const getAllAvailableTags = () => {
+    const content = searchQuery.trim() ? searchResults : categoryContent;
+    const allTags = new Set();
+    content.forEach(item => {
+      if (item.tags) {
+        item.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+    return Array.from(allTags).sort();
+  };
+
+  const handleMultiTagChange = (index, tag) => {
+    setMultiTagFilters(prev => 
+      prev.map((filter, i) => 
+        i === index ? { ...filter, tag } : filter
+      )
+    );
+  };
+
+  const handleMultiTagOperatorChange = (index, operator) => {
+    setMultiTagFilters(prev => 
+      prev.map((filter, i) => 
+        i === index ? { ...filter, operator } : filter
+      )
+    );
+  };
+
+  const loadAllContent = async () => {
+    try {
+      console.log('🔄 Loading all content across categories for list view...');
+      const allItems = [];
+      
+      // Load content from all categories
+      for (const categoryKey of Object.keys(categories)) {
+        try {
+          const response = await apiService.listContent(categoryKey, 50, 0);
+          const content = response.items || [];
+          allItems.push(...content);
+        } catch (err) {
+          console.error(`Failed to load ${categoryKey} content:`, err);
+        }
+      }
+      
+      setAllContent(allItems);
+      console.log(`✅ Loaded ${allItems.length} items across all categories`);
+    } catch (err) {
+      console.error('❌ Failed to load all content:', err);
+    }
+  };
+
   const getDisplayContent = () => {
-    return searchQuery.trim() ? searchResults : categoryContent;
+    let content;
+    
+    if (searchQuery.trim()) {
+      content = searchResults;
+    } else if (viewMode === 'list') {
+      // List view shows all content across categories
+      content = allContent;
+    } else {
+      // Card view shows selected category content
+      content = categoryContent;
+    }
+    
+    content = filterContentByMultiTags(content, multiTagFilters);
+    return sortContent(content, sortMode);
   };
   
   const handleFileUpload = async (files, category = selectedCategory) => {
@@ -736,20 +985,23 @@ const debugUploadState = () => {
           {/* Content Header */}
                     <div className="sticky top-0 z-10 bg-cream/95 border-b border-brass/30 p-6 backdrop-blur-sm">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full gap-4">
-              <div className="flex-shrink-0">
-                <h2 className="text-xl lg:text-2xl font-cormorant text-library-dark">
-                  {searchQuery.trim() 
-                    ? `Search Results for "${searchQuery}"` 
-                    : categories[selectedCategory]?.name || 'Content'
-                  }
-                </h2>
-                <p className="text-wood-dark text-sm mt-1">
-                  {getDisplayContent().length} item{getDisplayContent().length !== 1 ? 's' : ''} found
-                </p>
-              </div>
+              {/* Category Title and Count - Only in grid view */}
+              {viewMode === 'cards' && (
+                <div className="flex-shrink-0">
+                  <h2 className="text-xl lg:text-2xl font-cormorant text-library-dark">
+                    {searchQuery.trim() 
+                      ? `Search Results for "${searchQuery}"` 
+                      : categories[selectedCategory]?.name || 'Content'
+                    }
+                  </h2>
+                  <p className="text-wood-dark text-sm mt-1">
+                    {getDisplayContent().length} item{getDisplayContent().length !== 1 ? 's' : ''} found
+                  </p>
+                </div>
+              )}
 
-              {/* Summary Review Box */}
-              <div className="flex-1 lg:mx-8">
+              {/* Summary Review Box - Moved to far left */}
+              <div className="flex-shrink-0">
                 <div className="bg-white border-2 border-amber-800 rounded-lg p-3 lg:p-4 shadow-sm flex flex-col h-32 lg:h-40">
                   <div className="text-wood-dark font-semibold text-xs lg:text-sm mb-2 text-center border-b border-amber-200 pb-1">
                     Key Themes
@@ -785,7 +1037,75 @@ const debugUploadState = () => {
                 </div>
               </div>
               
+              {/* Multi-Tag Filter - 3 row stacked column */}
+              <div className="flex flex-col gap-1 mr-4">
+                {/* Header row */}
+                <div className="flex items-center gap-2 text-xs text-wood-dark/60">
+                  <span className="w-24">Filter Tags:</span>
+                  <span className="w-12 text-center">AND</span>
+                  <span className="w-12 text-center">OR</span>
+                </div>
+                
+                {/* 3 filter rows */}
+                {multiTagFilters.map((filter, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <select
+                      value={filter.tag}
+                      onChange={(e) => handleMultiTagChange(index, e.target.value)}
+                      className="text-xs bg-white border border-brass/30 rounded px-2 py-1 text-wood-dark focus:outline-none focus:border-brass w-24"
+                    >
+                      <option value="">-- Select --</option>
+                      {getAllAvailableTags().map(tag => (
+                        <option key={tag} value={tag}>{tag}</option>
+                      ))}
+                    </select>
+                    
+                    {/* AND radio button */}
+                    <div className="w-12 flex justify-center">
+                      <input
+                        type="radio"
+                        name={`operator-${index}`}
+                        value="AND"
+                        checked={filter.operator === 'AND'}
+                        onChange={(e) => handleMultiTagOperatorChange(index, e.target.value)}
+                        className="text-xs"
+                        disabled={!filter.tag}
+                      />
+                    </div>
+                    
+                    {/* OR radio button */}
+                    <div className="w-12 flex justify-center">
+                      <input
+                        type="radio"
+                        name={`operator-${index}`}
+                        value="OR"
+                        checked={filter.operator === 'OR'}
+                        onChange={(e) => handleMultiTagOperatorChange(index, e.target.value)}
+                        className="text-xs"
+                        disabled={!filter.tag}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div className="flex items-center gap-2 flex-shrink-0 lg:justify-end">
+                
+                {/* Sort controls */}
+                <div className="flex items-center gap-1 mr-2">
+                  <span className="text-xs text-wood-dark/60">Sort:</span>
+                  <select
+                    value={sortMode}
+                    onChange={(e) => setSortMode(e.target.value)}
+                    className="text-xs bg-white border border-brass/30 rounded px-2 py-1 text-wood-dark focus:outline-none focus:border-brass"
+                  >
+                    <option value="date">Date</option>
+                    <option value="title">Title</option>
+                    <option value="category">Category</option>
+                  </select>
+                </div>
+                
+                {/* View mode buttons */}
                 <button
                   onClick={() => setViewMode('cards')}
                   className={`p-2 rounded ${viewMode === 'cards' ? 'bg-brass/20 text-wood-dark' : 'text-wood-dark/60 hover:bg-brass/10'}`}
@@ -934,7 +1254,7 @@ const debugUploadState = () => {
                 ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
                 : 'space-y-3'
               }>
-                {getDisplayContent().map((item, index) => (
+                {getDisplayContent().map((item) => (
                   <div
                     key={item.id}
                     className={viewMode === 'cards' 
@@ -984,20 +1304,15 @@ const debugUploadState = () => {
                           )}
                         </div>
 
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {item.tags.slice(0, 3).map((tag, tagIndex) => (
-                              <span key={tagIndex} className="text-xs bg-brass/10 text-wood-dark px-2 py-1 rounded">
-                                {tag}
-                              </span>
-                            ))}
-                            {item.tags.length > 3 && (
-                              <span className="text-xs text-wood-dark/60">
-                                +{item.tags.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        {/* Replaced with TagBoxes component */}
+                        <div className="mb-3">
+                          <TagBoxes 
+                            tags={item.tags} 
+                            compact={false} 
+                            contentId={item.id}
+                            onTagsChange={handleTagsChange}
+                          />
+                        </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-brass/20">
                           <div className="flex gap-1">
@@ -1052,25 +1367,23 @@ const debugUploadState = () => {
                                 {item.passage}
                               </span>
                             )}
+                            {item.category && (
+                              <span className="text-xs bg-brass/20 text-wood-dark px-2 py-1 rounded-full">
+                                {item.category.charAt(0).toUpperCase() + item.category.slice(1).replace('-', ' ')}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-4 text-xs text-wood-dark/60 mt-1">
                             <span>{formatDate(item.date_modified || item.date_created)}</span>
                             {item.word_count && <span>{item.word_count} words</span>}
                             <span>{formatFileSize(item.size_bytes || 0)}</span>
-                            {item.tags && item.tags.length > 0 && (
-                              <div className="flex items-center gap-1">
-                                {item.tags.slice(0, 2).map((tag, tagIndex) => (
-                                  <span key={tagIndex} className="text-xs bg-brass/10 text-wood-dark px-2 py-1 rounded">
-                                    {tag}
-                                  </span>
-                                ))}
-                                {item.tags.length > 2 && (
-                                  <span className="text-xs text-wood-dark/60">
-                                    +{item.tags.length - 2}
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            {/* Replaced with compact TagBoxes */}
+                            <TagBoxes 
+                              tags={item.tags} 
+                              compact={true}
+                              contentId={item.id}
+                              onTagsChange={handleTagsChange}
+                            />
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1139,9 +1452,15 @@ const debugUploadState = () => {
             
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">
-                {selectedContent.content}
-              </div>
+              {selectedContent.category === 'sermons' ? (
+                <div className="text-sm text-gray-800 leading-relaxed">
+                  <MarkdownRenderer content={selectedContent.content} />
+                </div>
+              ) : (
+                <div className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">
+                  {selectedContent.content}
+                </div>
+              )}
             </div>
           </div>
         </div>

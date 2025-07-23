@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, CreditCard, Bell, Shield, Settings } from 'lucide-react';
+import { User, CreditCard, Bell, Shield, Settings, Tag } from 'lucide-react';
 import NavigationMenu from './Library/NavigationMenu';
-import ProfileSettings from './ProfileSettings'; // We will create this next
+import ProfileSettings from './ProfileSettings';
+import TagSettings from './TagSettings';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  // In a real app, this would come from a router or state management
-  const activeTab = 'profile';
+  // State management for active tab
+  const [activeTab, setActiveTab] = useState('profile');
 
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':
         return <ProfileSettings />;
+      case 'tags':
+        return <TagSettings />;
       // Add cases for other tabs here later
       default:
         return <ProfileSettings />;
@@ -43,16 +46,34 @@ const SettingsPage = () => {
         {/* Sidebar Navigation */}
         <aside className="w-1/4">
           <nav className="flex flex-col gap-2">
-            <button className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'profile' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}>
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'profile' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}
+            >
               <User className="w-5 h-5" /> Profile
             </button>
-            <button className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'account' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}>
+            <button 
+              onClick={() => setActiveTab('tags')}
+              className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'tags' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}
+            >
+              <Tag className="w-5 h-5" /> Tag Settings
+            </button>
+            <button 
+              onClick={() => setActiveTab('account')}
+              className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'account' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}
+            >
               <CreditCard className="w-5 h-5" /> Account & Billing
             </button>
-            <button className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'notifications' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}>
+            <button 
+              onClick={() => setActiveTab('notifications')}
+              className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'notifications' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}
+            >
               <Bell className="w-5 h-5" /> Notifications
             </button>
-            <button className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'security' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}>
+            <button 
+              onClick={() => setActiveTab('security')}
+              className={`flex items-center gap-3 p-3 rounded-lg text-left text-lg ${activeTab === 'security' ? 'bg-brass/20 text-brass' : 'hover:bg-brass/10'}`}
+            >
               <Shield className="w-5 h-5" /> Security
             </button>
           </nav>

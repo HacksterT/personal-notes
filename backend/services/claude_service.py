@@ -27,7 +27,7 @@ class ClaudeService:
         self.api_key = api_key or os.getenv('CLAUDE_API_KEY')
         self.base_url = base_url
         self.model = "claude-3-7-sonnet-20250219"  # Claude Sonnet 3.7
-        self.timeout = 60.0  # Claude is much faster than MiniMax
+        self.timeout = 60.0  # Standard timeout for Claude API
         self.max_retries = 3
         
         if not self.api_key:

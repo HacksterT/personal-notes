@@ -203,23 +203,35 @@ class FileProcessor:
     
     def _generate_title(self, filename: str, content: str) -> str:
         """Generate title from filename or content"""
-        # First try to extract title from content
+        # For sermon files, prioritize filename title (user-provided)
+        filename_title = Path(filename).stem.replace('_', ' ').replace('-', ' ').title()
+        
+        # If filename looks like a meaningful title (not just generic names), use it
+        generic_names = ['untitled', 'sermon', 'document', 'text', 'file', 'new', 'draft']
+        if not any(generic.lower() in filename_title.lower() for generic in generic_names):
+            return filename_title
+        
+        # Otherwise, try to extract title from content
         lines = content.split('\n')
         
         # Look for title patterns in first few lines
         for line in lines[:5]:
             line = line.strip()
             if line:
+                # Skip common problematic patterns
+                if line.lower().startswith(('the outline includes', 'source:', 'generated:')):
+                    continue
+                    
                 # Check if it looks like a title (short, capitalized, etc.)
                 if len(line) < 100 and not line.endswith('.'):
                     # Remove common markdown/formatting
                     title = re.sub(r'^#+\s*', '', line)  # Remove markdown headers
                     title = re.sub(r'\*+', '', title)   # Remove asterisks
-                    if title:
+                    if title and len(title.strip()) > 3:
                         return title
         
-        # Fallback to filename without extension
-        return Path(filename).stem.replace('_', ' ').replace('-', ' ').title()
+        # Final fallback to cleaned filename
+        return filename_title
     
     def _extract_bible_references(self, content: str) -> List[str]:
         """Extract Bible references from content"""

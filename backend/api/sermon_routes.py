@@ -133,7 +133,7 @@ async def generate_sermon(config: SermonConfig):
 {ai_prompt}
 ```
 
-*Both Claude and MiniMax APIs failed. Please check your API keys and try again.*"""
+*Both Grok and Claude APIs failed. Please check your API keys and try again.*"""
             service_used = "none"
         
         # Calculate estimated metadata

@@ -1,7 +1,7 @@
 # backend/services/analysis_service.py
 """
 Content Analysis Service for theological content analysis
-Handles communication with MiniMax API for key themes and thought questions
+Handles communication with AI services (Grok primary, Claude fallback) for key themes and thought questions
 """
 
 import asyncio
@@ -10,15 +10,17 @@ import json
 import os
 from datetime import datetime
 from typing import Optional
-from .minimax_service import minimax_service
+from .grok_service import grok_service
+from .claude_service import claude_service
 
 logger = logging.getLogger(__name__)
 
 class AnalysisService:
-    """Service for theological content analysis with queue management"""
+    """Service for theological content analysis with queue management using Grok-primary/Claude-fallback"""
     
     def __init__(self):
-        self.minimax = minimax_service
+        self.grok = grok_service
+        self.claude = claude_service
         self.max_retries = 3
         self.analysis_queue = asyncio.Queue()
         self.queue_processor_running = False
@@ -107,88 +109,115 @@ class AnalysisService:
                                           title: str = None, category: str = None, 
                                           storage_service = None):
         """
-        Internal method that handles MiniMax API communication and database update
-        Includes retry logic and error handling
+        Internal method that handles AI service communication (Grok primary, Claude fallback) and database update
+        Includes service fallback logic and error handling
+        """
+        # Try Grok first (primary service)
+        analysis = await self._try_analysis_with_service("Grok", self.grok, content_id, text_content, title, category)
+        
+        # If Grok fails, fallback to Claude
+        if not analysis:
+            logger.warning(f"Grok analysis failed for {content_id}, falling back to Claude")
+            analysis = await self._try_analysis_with_service("Claude", self.claude, content_id, text_content, title, category)
+        
+        # If both services fail
+        if not analysis:
+            logger.error(f"Both Grok and Claude analysis failed for {content_id}")
+            
+            # Update database with failure status
+            if storage_service:
+                try:
+                    await storage_service.update_processing_data(
+                        content_id=content_id,
+                        processing_status='failed',
+                        last_error="AI analysis failed with both Grok and Claude services"
+                    )
+                    logger.info(f"Database updated with failure status for {content_id}")
+                except Exception as db_error:
+                    logger.error(f"Failed to update database with failure status for {content_id}: {db_error}")
+            
+            return False
+        
+        # Success - store results in database
+        if storage_service:
+            success = await storage_service.update_processing_data(
+                content_id=content_id,
+                key_themes=analysis.key_themes,
+                thought_questions=analysis.thought_questions,
+                processing_status='completed'
+            )
+            
+            if success:
+                logger.info(f"AI theological analysis and storage successful for {content_id}")
+                return True
+            else:
+                logger.error(f"Failed to store analysis for {content_id}")
+                return False
+        else:
+            logger.error(f"No storage service provided for {content_id}")
+            return False
+
+    async def _try_analysis_with_service(self, service_name: str, service, content_id: str, 
+                                       text_content: str, title: str = None, category: str = None):
+        """
+        Try analysis with a specific AI service with retry logic
+        
+        Returns:
+            TheologicalAnalysis object if successful, None if failed
         """
         for attempt in range(self.max_retries):
             try:
-                logger.info(f"AI theological analysis attempt {attempt + 1} for {content_id}")
+                logger.info(f"AI theological analysis with {service_name} (attempt {attempt + 1}) for {content_id}")
                 
                 # Log the analysis prompt for debugging
-                self._log_analysis_prompt(content_id, text_content, title, category)
+                self._log_analysis_prompt(content_id, text_content, title, category, service_name)
                 
-                # Call MiniMax API for theological analysis
-                analysis = await self.minimax.analyze_content(
+                # Call AI service for theological analysis
+                analysis = await service.analyze_content(
                     content=text_content,
                     title=title,
                     category=category
                 )
                 
                 if not analysis or not analysis.key_themes or not analysis.thought_questions:
-                    logger.warning(f"MiniMax analysis returned incomplete data: {analysis}")
-                    
-                    # Store error in database if storage available
-                    if storage_service:
-                        await storage_service.update_processing_data(
-                            content_id=content_id,
-                            processing_status='failed',
-                            last_error="Incomplete analysis data received"
-                        )
+                    logger.warning(f"{service_name} analysis returned incomplete data: {analysis}")
                     
                     # If it's a retry-able error, continue to next attempt
                     if attempt < self.max_retries - 1:
                         continue
                     else:
-                        return False
+                        return None
                 
-                # Success - store results in database
-                if storage_service:
-                    success = await storage_service.update_processing_data(
-                        content_id=content_id,
-                        key_themes=analysis.key_themes,
-                        thought_questions=analysis.thought_questions,
-                        processing_status='completed'
-                    )
-                    
-                    if success:
-                        logger.info(f"AI theological analysis and storage successful for {content_id}")
-                        return True
-                    else:
-                        logger.error(f"Failed to store analysis for {content_id}")
-                        return False
-                else:
-                    logger.error(f"No storage service provided for {content_id}")
-                    return False
+                logger.info(f"{service_name} analysis successful for {content_id}")
+                return analysis
                         
             except Exception as e:
-                logger.error(f"AI analysis error for {content_id} (attempt {attempt + 1}): {e}")
+                logger.error(f"{service_name} analysis error for {content_id} (attempt {attempt + 1}): {e}")
             
             # Wait before retry (exponential backoff)
             if attempt < self.max_retries - 1:
                 wait_time = 2 ** attempt  # 1s, 2s, 4s
                 await asyncio.sleep(wait_time)
         
-        logger.error(f"AI theological analysis failed after {self.max_retries} attempts for {content_id}")
-        
-        # Update database with failure status
-        if storage_service:
-            try:
-                await storage_service.update_processing_data(
-                    content_id=content_id,
-                    processing_status='failed',
-                    last_error=f"AI analysis failed after {self.max_retries} attempts"
-                )
-                logger.info(f"Database updated with failure status for {content_id}")
-            except Exception as db_error:
-                logger.error(f"Failed to update database with failure status for {content_id}: {db_error}")
-        
-        return False
+        logger.error(f"{service_name} analysis failed after {self.max_retries} attempts for {content_id}")
+        return None
     
     async def health_check(self) -> bool:
-        """Check if MiniMax AI service is available"""
-        return await self.minimax.health_check()
+        """Check if AI services are available (Grok primary, Claude fallback)"""
+        grok_healthy = await self.grok.health_check()
+        claude_healthy = await self.claude.health_check()
+        
+        if grok_healthy:
+            logger.info("Grok AI service is healthy (primary)")
+            return True
+        elif claude_healthy:
+            logger.info("Claude AI service is healthy (fallback - Grok unavailable)")
+            return True
+        else:
+            logger.error("Both Grok and Claude AI services are unavailable")
+            return False
     
-    def _log_analysis_prompt(self, content_id: str, text_content: str, title: str = None, category: str = None):
+    def _log_analysis_prompt(self, content_id: str, text_content: str, title: str = None, category: str = None, service_name: str = "Unknown"):
         """Log analysis prompt to JSON file for debugging"""
         try:
             # Ensure log_prompts directory exists
@@ -197,12 +226,15 @@ class AnalysisService:
             
             # Create timestamp for filename
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # milliseconds
-            filename = f"analysis_prompt_{timestamp}.json"
+            filename = f"analysis_prompt_{timestamp}_{service_name.lower()}.json"
             filepath = os.path.join(log_dir, filename)
             
-            # Build the prompts that will be sent to AI (as separate messages)
-            system_prompt = self.minimax._create_system_prompt()
-            user_prompt = self.minimax._create_user_prompt(text_content, title, category)
+            # Get service instance for prompt generation
+            service = self.grok if service_name.lower() == "grok" else self.claude
+            
+            # Build the prompts that will be sent to AI
+            system_prompt = service._create_system_prompt()
+            user_prompt = service._create_user_prompt(text_content, title, category)
             
             # Prepare log data
             log_data = {
@@ -218,7 +250,7 @@ class AnalysisService:
                 "system_prompt_length": len(system_prompt),
                 "user_prompt_length": len(user_prompt),
                 "total_prompt_length": len(system_prompt) + len(user_prompt),
-                "service": "minimax",
+                "service": service_name.lower(),
                 "function_calling": True
             }
             

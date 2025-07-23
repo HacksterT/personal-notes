@@ -12,6 +12,9 @@ ARG PYTHON_VERSION=3.12.6
 # Use a Node.js image to build the frontend
 FROM node:20-slim as frontend-builder
 
+# Accept build argument for API URL
+ARG VITE_API_URL=http://localhost:8001
+
 # Set the working directory
 WORKDIR /app/frontend
 
@@ -24,7 +27,8 @@ RUN npm install --frozen-lockfile
 # Copy the rest of the frontend source code
 COPY frontend/ ./
 
-# Build the frontend application, output will be in /app/frontend/dist
+# Build the frontend application with environment variable
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 

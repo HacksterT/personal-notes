@@ -18,6 +18,7 @@ import {
 import { bibleService } from '../../services/bibleService';
 import { apiService } from '../../services/api';
 import NavigationMenu from './NavigationMenu';
+import TagBoxes from '../TagBoxes';
 
 const StudyHall = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const StudyHall = () => {
   const [isNewDocument, setIsNewDocument] = useState(true);
   const [editingContentId, setEditingContentId] = useState(null);
   const [editingContentData, setEditingContentData] = useState(null);
+  const [currentTags, setCurrentTags] = useState([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showNewNoteModal, setShowNewNoteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,7 +86,8 @@ const StudyHall = () => {
               const fullData = await apiService.getContent(resource.id);
               return {
                 ...resource,
-                key_themes: fullData.key_themes || []
+                key_themes: fullData.key_themes || [],
+                tags: fullData.tags || []
               };
             } catch (error) {
               console.error(`Failed to fetch themes for ${resource.title}:`, error);
@@ -160,6 +163,7 @@ const StudyHall = () => {
             console.log('🔄 Fetching complete content data from API...');
             const fullContentData = await apiService.getContent(content.id);
             setEditingContentData(fullContentData);
+            setCurrentTags(fullContentData.tags || []);
             console.log('✅ Complete content data loaded:', fullContentData.title, {
               key_themes: fullContentData.key_themes?.length || 0,
               thought_questions: fullContentData.thought_questions?.length || 0,
@@ -366,7 +370,7 @@ const StudyHall = () => {
       };
       
       // Call backend API
-      const response = await fetch('/api/chat/librarian', {
+      const response = await fetch(`${apiService.baseURL}/api/chat/librarian`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,8 +477,21 @@ const StudyHall = () => {
     setIsNewDocument(true);
     setEditingContentId(null);
     setEditingContentData(null);
+    setCurrentTags([]);
     setSaveSuccess(false);
     setShowNewNoteModal(false);
+  };
+
+  // Handle tag changes
+  const handleTagsChange = async (contentId, tags) => {
+    try {
+      await apiService.updateContentTags(contentId, tags);
+      setCurrentTags(tags);
+      console.log('✅ Tags updated successfully:', tags);
+    } catch (error) {
+      console.error('Failed to update tags:', error);
+      throw error;
+    }
   };
 
   // Handle Yes (save first) in New Note modal
@@ -567,7 +584,8 @@ const StudyHall = () => {
           title: title,
           content: studyNotes,
           category: editorCategory,
-          filename: `${title}.txt`
+          filename: `${title}.txt`,
+          tags: currentTags
         };
         
         console.log('📦 Update payload:', contentData);
@@ -652,7 +670,7 @@ const StudyHall = () => {
         
         console.log('FormData created, making request...');
         
-        const response = await fetch('/api/storage/upload', {
+        const response = await fetch(`${apiService.baseURL}/api/storage/upload`, {
           method: 'POST',
           body: formData
         });
@@ -677,6 +695,15 @@ const StudyHall = () => {
           // Update content ID if this was a new document
           if (responseContentId && !editingContentId) {
             setEditingContentId(responseContentId);
+            // Update tags for new content if any tags are set
+            if (currentTags.length > 0) {
+              try {
+                await apiService.updateContentTags(responseContentId, currentTags);
+                console.log('✅ Tags updated for new content:', currentTags);
+              } catch (tagError) {
+                console.error('Failed to update tags for new content:', tagError);
+              }
+            }
           }
           
           // Fetch content immediately and check analysis status (exactly like upload workflow)
@@ -805,12 +832,24 @@ const StudyHall = () => {
     navigate('/workshop');
   };
 
-  const handleResourceSelect = (resource) => {
+  const handleResourceSelect = async (resource) => {
     let newResources;
     if (selectedResources.find(r => r.id === resource.id)) {
       newResources = selectedResources.filter(r => r.id !== resource.id);
     } else if (selectedResources.length < 5) {
-      newResources = [...selectedResources, resource];
+      // Fetch complete resource data including tags when adding
+      try {
+        const fullData = await apiService.getContent(resource.id);
+        const enrichedResource = {
+          ...resource,
+          key_themes: fullData.key_themes || [],
+          tags: fullData.tags || []
+        };
+        newResources = [...selectedResources, enrichedResource];
+      } catch (error) {
+        console.error(`Failed to fetch complete data for ${resource.title}:`, error);
+        newResources = [...selectedResources, resource]; // Fallback to original
+      }
     } else {
       return; // Don't add if already at max
     }
@@ -818,7 +857,7 @@ const StudyHall = () => {
     setSelectedResources(newResources);
     // Sync with localStorage
     localStorage.setItem('activeResources', JSON.stringify(newResources));
-    console.log('🔄 Updated active resources:', newResources.map(r => ({ title: r.title, key_themes: r.key_themes })));
+    console.log('🔄 Updated active resources:', newResources.map(r => ({ title: r.title, key_themes: r.key_themes, tags: r.tags })));
   };
 
   const filteredResources = availableResources.filter(resource => {
@@ -1237,43 +1276,55 @@ const StudyHall = () => {
               <div className="bg-white/80 border border-brass/30 rounded-lg p-6">
                 {/* Category Radio Buttons */}
                 <div className="flex items-center gap-6 mb-4 pb-4 border-b border-brass/20">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editorCategory"
-                        value="study-notes"
-                        checked={editorCategory === 'study-notes'}
-                        onChange={(e) => {
-                          console.log('📁 Category changed from', editorCategory, 'to', e.target.value);
-                          setEditorCategory(e.target.value);
-                          // Save category change to localStorage
-                          if (!editingContentId) {
-                            saveEditorContentToStorage(studyNotes, e.target.value);
-                          }
-                        }}
-                        className="text-brass focus:ring-brass"
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editorCategory"
+                          value="study-notes"
+                          checked={editorCategory === 'study-notes'}
+                          onChange={(e) => {
+                            console.log('📁 Category changed from', editorCategory, 'to', e.target.value);
+                            setEditorCategory(e.target.value);
+                            // Save category change to localStorage
+                            if (!editingContentId) {
+                              saveEditorContentToStorage(studyNotes, e.target.value);
+                            }
+                          }}
+                          className="text-brass focus:ring-brass"
+                        />
+                        <span className="text-wood-dark font-medium">Study Notes</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editorCategory"
+                          value="journal"
+                          checked={editorCategory === 'journal'}
+                          onChange={(e) => {
+                            console.log('📁 Category changed from', editorCategory, 'to', e.target.value);
+                            setEditorCategory(e.target.value);
+                            // Save category change to localStorage
+                            if (!editingContentId) {
+                              saveEditorContentToStorage(studyNotes, e.target.value);
+                            }
+                          }}
+                          className="text-brass focus:ring-brass"
+                        />
+                        <span className="text-wood-dark font-medium">Journal</span>
+                      </label>
+                    </div>
+                    
+                    {/* Tag Editing Section */}
+                    <div className="flex items-center gap-2">
+                      <TagBoxes
+                        tags={currentTags}
+                        contentId={editingContentId}
+                        onTagsChange={editingContentId ? handleTagsChange : undefined}
+                        compact={true}
                       />
-                      <span className="text-wood-dark font-medium">Study Notes</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editorCategory"
-                        value="journal"
-                        checked={editorCategory === 'journal'}
-                        onChange={(e) => {
-                          console.log('📁 Category changed from', editorCategory, 'to', e.target.value);
-                          setEditorCategory(e.target.value);
-                          // Save category change to localStorage
-                          if (!editingContentId) {
-                            saveEditorContentToStorage(studyNotes, e.target.value);
-                          }
-                        }}
-                        className="text-brass focus:ring-brass"
-                      />
-                      <span className="text-wood-dark font-medium">Journal</span>
-                    </label>
+                    </div>
                   </div>
                 </div>
 
@@ -1329,9 +1380,18 @@ const StudyHall = () => {
 
               {/* Resource Viewer */}
               <div className="bg-brass/10 border border-brass/30 rounded-lg p-6">
-                <h3 className="text-xl font-cormorant text-wood-dark mb-4 flex items-center gap-2">
-                  📖 Resource Viewer
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-cormorant text-wood-dark flex items-center gap-2">
+                    📖 Resource Viewer
+                  </h3>
+                  {/* Tags Display */}
+                  {viewingResourceIndex !== null && selectedResources[viewingResourceIndex] && (
+                    <TagBoxes
+                      tags={selectedResources[viewingResourceIndex].tags || []}
+                      compact={true}
+                    />
+                  )}
+                </div>
                 {viewingResourceIndex !== null && selectedResources[viewingResourceIndex] ? (
                   <div className="bg-white/90 rounded-lg p-4 max-h-80 overflow-y-auto">
                     <div className="border-b border-brass/20 pb-3 mb-4">

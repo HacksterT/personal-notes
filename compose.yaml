@@ -10,56 +10,56 @@
 
 # Docker Compose for Sermon Organizer - Simple setup with no authentication
 services:
-  server:
+  notes-app:
     build:
       context: .
       target: backend
+      args:
+        - VITE_API_URL=http://localhost:8001
+      # Uses production build - builds frontend and serves via FastAPI
     ports:
-      - 8000:8000
+      - 8001:8000
     depends_on:
-      db:
+      notes-db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://dev_user:dev_password@db:5432/sermon_organizer_dev
-      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-your_minimax_api_key_here}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY:-your_claude_api_key_here}
-      - XAI_API_KEY=${XAI_API_KEY:-your_xai_api_key_here}
+      - DATABASE_URL=postgresql://dev_user:dev_password@notes-db:5432/sermon_organizer_dev
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY}
     volumes:
-      - ./backend:/app/backend:cached
-    command: ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+      - ./backend/log_prompts:/app/backend/log_prompts
+    restart: unless-stopped
+    networks:
+      - personal-notes-network
 
-  frontend-dev:
-    build:
-      context: .
-      target: frontend-dev
-    ports:
-      - 5173:5173
-    volumes:
-      - ./frontend:/app:cached
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-
-  db:
+  notes-db:
     image: postgres:15
     restart: always
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - notes-db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=sermon_organizer_dev
       - POSTGRES_USER=dev_user
       - POSTGRES_PASSWORD=dev_password
     ports:
-      - 5432:5432
+      - 5433:5432
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "dev_user", "-d", "sermon_organizer_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - personal-notes-network
 
 
 volumes:
-  db-data:
+  notes-db-data:
+    external: true
+    name: personal-notes_notes-db-data
+
+networks:
+  personal-notes-network:
+    driver: bridge
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to

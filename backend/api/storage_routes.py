@@ -206,6 +206,60 @@ async def update_content(
         logger.error(f"Failed to update content {content_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@storage_router.put("/content/{content_id}/tags")
+async def update_content_tags(
+    content_id: str,
+    tags_data: dict,
+    storage_service: StorageService = Depends(get_storage_service)
+):
+    """Update only the tags for a content item"""
+    try:
+        # Verify content exists
+        existing = await storage_service.get_content(DEFAULT_USER_ID, content_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Content not found")
+        
+        # Extract tags from request
+        new_tags = tags_data.get('tags', [])
+        
+        # Validate tags (should be a list of strings)
+        if not isinstance(new_tags, list):
+            raise HTTPException(status_code=400, detail="Tags must be a list")
+        
+        if len(new_tags) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 tags allowed")
+        
+        # Clean and validate tag strings
+        cleaned_tags = []
+        for tag in new_tags:
+            if isinstance(tag, str) and tag.strip():
+                cleaned_tags.append(tag.strip())
+        
+        logger.info(f"Updating tags for content {content_id}: {cleaned_tags}")
+        
+        # Update only the tags field
+        update_data = {
+            'id': content_id,
+            'tags': cleaned_tags
+        }
+        
+        await storage_service.store_content(
+            user_id=DEFAULT_USER_ID,
+            content_data=update_data
+        )
+        
+        return {
+            'success': True, 
+            'message': 'Tags updated successfully',
+            'tags': cleaned_tags
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update tags for content {content_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @storage_router.delete("/content/{content_id}")
 async def delete_content(
     content_id: str,

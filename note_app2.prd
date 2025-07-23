@@ -1,0 +1,438 @@
+# Personal Note Manager - Phase 3 Development & Future Enhancements
+**Version**: 3.0  
+**Date**: 2025-07-22  
+**Purpose**: Next-phase development for intelligent content preprocessing and system optimizations
+
+## Foundation Summary
+
+**Project Status**: Personal notes manager fully operational with optimized dual-AI service architecture
+
+**Completed Phases**:
+- ✅ **Phase 1**: Project separation and single-container setup with persistent file storage
+- ✅ **Phase 2**: AI service consolidation (Grok-primary/Claude-fallback) and complete MiniMax elimination
+
+**Current Architecture**:
+- 🚀 **Grok Primary**: Fast, reasoning-capable AI for all workflows (XAI_API_KEY)
+- 🛡️ **Claude Fallback**: High-quality backup service for reliability (CLAUDE_API_KEY)  
+- ⚡ **Automatic Fallback**: Seamless service transition with retry logic
+- 📝 **Comprehensive Logging**: Service selection and performance tracking with prompt logging infrastructure
+- 🗑️ **Zero MiniMax**: Complete elimination from codebase and documentation
+
+**Critical Workflows Operational**:
+- ✅ **File Upload**: Content analysis works with new AI service configuration
+- ✅ **Content Save**: Save functionality triggers analysis with Grok-primary setup
+- ✅ **Sermon Generation**: Long-form content creation with service fallback
+- ✅ **Chat Responses**: Interactive features use optimized AI architecture
+- ✅ **Prompt Logging**: All AI interactions logged to host directory for analysis
+
+**Technical Environment**:
+- **Container**: Single production container (frontend + backend) on port 8001
+- **Database**: PostgreSQL with copied sermon organizer content (36 files)
+- **File Storage**: Build-time inclusion strategy for persistent content
+- **API Configuration**: Standardized baseURL usage across all components
+- **Logging Infrastructure**: Volume-mounted prompt logging with proper permissions
+
+---
+
+### Phase 3: LLM-Compatible Preprocessing & Trimming Strategy
+
+**Objective**: Implement intelligent content preprocessing to optimize long-form notes for AI analysis while preserving meaning, structure, and readability.
+
+**Goal**: Prepare long-form note text for submission to large language models (e.g., Grok) by reducing token count without compromising legibility, meaning, or structure.
+
+#### 3.1 Guiding Principles and Architecture Design
+- [ ] **3.1.1** Define preprocessing service architecture:
+  - Create `content_preprocessor.py` service for text optimization
+  - Integrate with existing `analysis_service.py` workflow
+  - Maintain backward compatibility with current content processing
+- [ ] **3.1.2** Establish core preprocessing principles:
+  - ✅ **Preserve sentence structure**: LLMs trained on full natural language; avoid over-cleaning
+  - ✅ **Prioritize content**: Remove fluff/repeated phrases, not informative sentences  
+  - ✅ **Trim intelligently**: Use sentence-level filtering instead of hard truncation
+  - ✅ **Stay under token limits**: Estimate input size with margin for response tokens
+
+#### 3.2 Step 1: Light Normalization Implementation
+- [ ] **3.2.1** Implement structure-preserving normalization:
+  - Optional lowercase conversion (LLMs are case-aware but not case-sensitive)
+  - Remove non-linguistic noise (extra spaces, decorative symbols, emojis unless meaningful)
+  - Strip metadata noise (timestamps, author headers, page numbers)
+- [ ] **3.2.2** Preserve grammar and readability:
+  - Maintain sentence boundaries and punctuation
+  - Keep paragraph structure intact
+  - Avoid breaking mid-thought or fragmenting sentences
+
+#### 3.3 Step 2: Sentence Segmentation System
+- [ ] **3.3.1** Implement sentence boundary detection:
+  - Use punctuation-based splitting for simple cases
+  - Consider integrating NLP tools (spaCy) for complex sentence structures
+  - Handle edge cases (abbreviations, decimal numbers, quotes)
+- [ ] **3.3.2** Create paragraph and sentence indexing:
+  - Maintain original sentence order and context
+  - Enable selective trimming without cutting mid-thought
+  - Preserve logical flow and transitions between ideas
+
+#### 3.4 Step 3: Relevance Scoring and Filtering
+- [ ] **3.4.1** **Option A: Keyword Density Approach**:
+  - Score sentences based on frequency of meaningful words (nouns, verbs)
+  - Identify domain-specific terminology for theological content
+  - Weight sentences with higher information density
+- [ ] **3.4.2** **Option B: Heuristic-Based Filtering**:
+  - Prioritize sentences with personal reflections ("I realized", "This helped me...")
+  - Identify questions, conclusions, and summary statements  
+  - Weight paragraphs near end of notes (often contain summaries)
+- [ ] **3.4.3** **Option C: Lightweight Extractive Summarization**:
+  - Implement TF-IDF scoring for sentence importance
+  - Consider integration with summarization libraries (sumy)
+  - Extract top 5-10 key sentences based on content relevance
+- [ ] **3.4.4** Choose and implement optimal filtering strategy:
+  - Test multiple approaches with sample content
+  - Measure effectiveness on theological analysis quality
+  - Implement configurable strategy selection
+
+#### 3.5 Step 4: Reassembly and Quality Assurance
+- [ ] **3.5.1** Implement intelligent content reassembly:
+  - Reorder filtered sentences to maintain logical flow (intro → body → conclusion)
+  - Ensure trimmed text reads smoothly and coherently
+  - Avoid "floating" sentences without proper context
+- [ ] **3.5.2** Quality validation system:
+  - Verify sentence completeness and grammatical correctness
+  - Check for maintained narrative flow and coherence
+  - Ensure key theological concepts are preserved
+
+#### 3.6 Integration with Existing AI Workflow
+- [ ] **3.6.1** Integrate preprocessor with analysis service:
+  - Modify `analysis_service.py` to use preprocessing before AI analysis
+  - Add configuration options for preprocessing intensity levels
+  - Maintain fallback to original content if preprocessing fails
+- [ ] **3.6.2** Token limit management:
+  - Implement token estimation for Grok and Claude APIs
+  - Add configurable limits based on AI service and operation type
+  - Reserve token space for AI response generation
+- [ ] **3.6.3** Performance optimization:
+  - Cache preprocessed content to avoid reprocessing
+  - Implement async processing for large content items
+  - Add processing time tracking and optimization metrics
+
+#### 3.7 Testing and Validation
+- [ ] **3.7.1** Test preprocessing effectiveness:
+  - Compare AI analysis quality: original vs preprocessed content
+  - Measure token reduction percentages while maintaining meaning
+  - Test with various content types (sermons, study notes, journals)
+- [ ] **3.7.2** Performance and reliability testing:
+  - Test processing speed with large content items
+  - Validate error handling and fallback mechanisms
+  - Ensure preprocessing doesn't break existing workflows
+- [ ] **3.7.3** User experience validation:
+  - Test upload and save workflows with preprocessing enabled
+  - Verify AI analysis results maintain quality and relevance
+  - Collect performance metrics for optimization
+
+### Phase 4: Comprehensive Tag Management System
+
+**Objective**: Implement a complete tag management system with user-editable tags, tag library management, and tag integration across all content creation workflows.
+
+**Key Requirements**:
+- Limit tags to 5 per artifact with color-coded categories
+- Visual display of all 5 tag slots on library cards with category colors
+- Tag editing directly on library stack cards
+- Centralized tag management in settings with category organization
+- Tag integration in sermon generator and study hall
+- Category-based tag suggestions replacing pure auto-generation
+
+**Tag Category System**:
+- **Area of Focus** (Green): 2 tags max - Theological/topical focus areas
+- **Content Purpose** (Blue): 2 tags max - Intended use and audience
+- **Tone/Style** (Orange): 2 tags max - Communication style and approach  
+- **Custom** (Purple): 1 tag max - User-defined flexible tagging
+
+**Prescriptive Tag Library** (8 tags per category):
+
+*Area of Focus (Green) - Theological/Topical:*
+- Salvation & Grace
+- Prayer & Worship  
+- Faith & Trust
+- Love & Relationships
+- Hope & Comfort
+- Discipleship & Growth
+- Scripture Study
+- Service & Mission
+
+*Content Purpose (Blue) - Use & Audience:*
+- Teaching & Education
+- Personal Reflection
+- Evangelism & Outreach
+- Pastoral Care
+- Youth Ministry
+- Small Group Study
+- Sermon Preparation
+- Devotional Reading
+
+*Tone/Style (Orange) - Communication Approach:*
+- Expository & Scholarly
+- Inspirational & Uplifting
+- Practical & Applicable
+- Contemplative & Reflective
+- Conversational & Accessible
+- Prophetic & Challenging
+- Narrative & Story-driven
+- Interactive & Discussion-based
+
+#### 4.1 Tag Management Foundation ✅ COMPLETED
+- [x] **4.1.1** Create categorized tag management page in settings:
+  - Add "Tag Library" section to ProfileSettings component with 4 color-coded categories
+  - Display prescriptive tags by category (Green: Area of Focus, Blue: Content Purpose, Orange: Tone/Style)
+  - Frontend-only prescriptive tag library (24 hardcoded tags, 8 per category)
+  - Custom tag management for Purple category with localStorage persistence
+  - Color-coordinated UI with proper contrast for all categories and icons
+- [x] **4.1.2** localStorage-based custom tag persistence:
+  - **Tag Library Source**: Frontend constants (prescriptive) + localStorage (custom tags)
+  - **Custom Tag Management**: Add/edit/delete operations persist across sessions
+  - **Tag Assignment**: Available from LibraryStacks card view via dropdown selection
+  - **Database Storage**: Update `content_items.tags` via API (database-only, no file modification)
+  - **Session Persistence**: Custom tags saved to browser localStorage, survive page refreshes
+
+#### 4.2 Library Stacks Card-Based Tag Editing (SIMPLIFIED)
+- [x] **4.2.1** Design compact 5-slot colored box interface within existing card dimensions:
+  - **Layout Constraint**: Must fit within current card size without expansion  
+  - **Visual Design**: Replace current tag display area with 5 colored boxes
+  - **Box Styling**: Colored background boxes with white text, category-appropriate colors
+  - **Box Colors**: Green boxes (Area of Focus), Blue boxes (Content Purpose), Orange boxes (Tone/Style), Purple box (Custom)
+  - **Filled State**: Colored box with white text showing tag name (truncated if needed)
+  - **Empty State**: Lighter colored box with white "+" text
+  - **Layout**: Horizontal row of 5 boxes in same space as current tag display
+  - **Slot Distribution**: Green (2), Blue (1), Orange (1), Purple (1) = 5 total slots
+  - **Current Tags**: Map existing `item.tags` to appropriate category boxes based on prescriptive library matching
+
+- [x] **4.2.2** Implement 2-tiered dropdown tag selection:
+  - **Tier 1**: Category selection dropdown (Green/Blue/Orange/Purple) when clicking empty slot
+  - **Tier 2**: Tag selection dropdown filtered by chosen category
+  - **Tag Sources**: 
+    - Prescriptive tags from TagSettings constants
+    - Custom tags from TagSettings Purple category
+    - "Create New Custom Tag" option (Purple category only)
+  - **Auto-close**: Selection automatically closes dropdown and assigns tag
+
+- [x] **4.2.3** Tag slot management and validation:
+  - **Category Limits**: Enforce 2 tags max for Green/Blue/Orange, 1 tag max for Purple
+  - **Tag Removal**: Click tag to show remove button (X icon)
+  - **Tag Replacement**: Click filled slot to change tag (opens category-filtered dropdown)
+  - **Save Tags Button**: Appears when any tag changes are made, single API call for all edits
+  - **Batch Updates**: Overwrite entire 5-tag array with current selections
+  - **API Integration**: `PUT /api/storage/content/{id}/tags` - Update only tags array  
+  - **File Regeneration**: Trigger file regeneration with new tags embedded in markdown
+
+- [x] **4.2.4** Real API integration and testing:
+  - **Backend API**: `PUT /api/storage/content/{id}/tags` endpoint created
+  - **Database-Only Updates**: Tags stored in `content_items.tags` array, no file modification
+  - **Frontend API**: `apiService.updateContentTags(contentId, tags)` method added  
+  - **Real Integration**: Removed simulation, using actual database updates
+  - **Validation**: 5-tag limit enforced, empty tags filtered, proper error handling
+  - **Performance**: Optimistic UI updates, single API call per save operation
+
+- [x] **4.2.5** Critical bug fixes and UI improvements:
+  - **Content Preservation Bug**: Fixed storage service partial update issue where tag updates accidentally cleared content field
+  - **Custom Tag Overwriting**: Resolved localStorage persistence preventing hardcoded constants from overriding user changes
+  - **Color Coordination**: Fixed TagSettings color classes to use proper Tailwind classes instead of dynamic generation
+  - **Icon Visibility**: Enhanced edit/delete icons with proper contrast (black text on white background) for Purple category
+  - **Database Integration**: Confirmed tag updates only modify `tags` array, preserving content, key themes, and all other fields
+
+#### 4.3 StudyHall Tag Integration ✅ COMPLETED
+- [x] **4.3.1** StudyHall edit window tag integration:
+  - **Banner Integration**: TagBoxes component added to edit window banner next to Study Notes/Journal radio buttons
+  - **Full Editing Capabilities**: 5-slot tag system with dropdown selection and save functionality
+  - **Dual Workflows**: New notes start with blank tags, imported notes load with existing tags
+  - **Save Integration**: Tags persist with content for both new document creation and existing document updates
+  - **API Integration**: Uses same `updateContentTags` API as library cards with proper error handling
+  - **Compact Display**: Tags display in compact mode to fit banner layout without "Tags:" label
+
+- [x] **4.3.2** StudyHall resource viewer tag display:
+  - **Header Integration**: TagBoxes component added to resource viewer window header (far left/upper area)
+  - **Read-Only Display**: Tags display in compact mode without editing functionality
+  - **Dual Data Sources**: Tags load from both active resource workflows
+  - **Workflow 1 Fix**: StudyHall Library Resources selection fetches complete tag data via API
+  - **Workflow 2 Fix**: LibraryStacks "Load Active Resources" icon includes tags in localStorage data
+  - **Clean Interface**: No "Tags:" label - color scheme provides visual identification
+
+**Key Technical Implementation Notes:**
+- **localStorage Custom Tags**: `/frontend/src/constants/tagConstants.js` - custom array empty, managed via localStorage
+- **TagSettings localStorage Pattern**: 
+  ```javascript
+  const loadCustomTags = () => JSON.parse(localStorage.getItem('customTags') || '[]');
+  const saveCustomTags = (tags) => localStorage.setItem('customTags', JSON.stringify(tags));
+  ```
+- **TagBoxes localStorage Integration**: Custom tags loaded via `localStorage.getItem('customTags')` in `getAvailableTagsForCategory()`
+- **Critical Storage Service Fix**: `/backend/services/storage_service.py` - `store_content()` uses dynamic SQL for partial updates to prevent content overwrites
+- **StudyHall Tag State Management**: `currentTags` state synchronized with content loading, saving, and API calls
+- **Resource Data Enrichment Pattern**: Both `loadActiveResourcesFromStorage()` and `handleResourceSelect()` fetch complete data via `apiService.getContent()` to include tags
+- **LibraryStacks Resource Format**: `resourceItem` structure in "Load Active Resources" workflow must include `tags: item.tags || []`
+- **TagBoxes Conditional Editing**: `onTagsChange={editingContentId ? handleTagsChange : undefined}` - only editable when content has valid ID
+
+- [x] **4.3.3** StudyHall tag integration testing and validation: ✅ COMPLETED
+  - **Edit Window Testing**: Verify tag editing in both new note and imported note workflows
+  - **Resource Viewer Testing**: Validate tag display from both active resource loading workflows
+  - **Workflow 1 Testing**: Test resource selection from StudyHall Library Resources section (bottom right)
+  - **Workflow 2 Testing**: Test "Load Active Resources" icon from LibraryStacks cards
+  - **Cross-Integration Testing**: Verify tags persist correctly between library cards and StudyHall
+  - **API Validation**: Confirm all tag operations properly save to database without affecting other fields
+
+- [x] **4.3.5** Global Content View and Enhanced Multi-Tag Filtering System: ✅ COMPLETED
+  - **List View Global Scope**: IMPLEMENTED - List view shows ALL content across categories, deactivates sidebar category selection
+  - **Header Layout Restructure**: COMPLETED - Key Themes box moved to far left, category title/count removed in list view (preserved in grid view)
+  - **Multi-Tag Filter Implementation**: FULLY IMPLEMENTED - 3-row stacked column design with:
+    - **3 Independent Tag Dropdowns**: Each row has its own tag selection dropdown (max 3 tags)
+    - **Individual AND/OR Logic**: Each tag gets its own radio button pair for granular filtering control
+    - **Column Headers**: "Filter Tags:", "AND", and "OR" labels for clear user guidance
+    - **Space Optimization**: Horizontal space efficiently utilized in header layout
+    - **Complex Filter Logic**: Supports queries like "Must have Prayer AND (can have Easter OR Teaching)"
+  - **Enhanced Filtering Logic**: COMPLETED
+    - **Removed "tag sort" option**: Eliminated confusing tag count + first tag alphabetical approach
+    - **Streamlined sort options**: Date, Title, Category (logical and intuitive)
+    - **Per-tag operators**: Each filter independently set to AND (required) or OR (optional)
+  - **Visual Category Integration**: COMPLETED - Category bubbles in list view match grid view styling, positioned after scripture references
+  - **Performance Optimization**: IMPLEMENTED - Efficient loading and rendering with separate content sources for grid vs list views
+  - **Smart Content Loading**: Automatic all-category loading when switching to list view, preserves selected category for grid view
+
+- [x] **4.3.4** Critical LibraryStacks tag bugs and enhancements: ✅ COMPLETED
+  - **🐛 List View Tag Editing Bug**: FIXED - TagBoxes component now supports editing in compact mode for list view
+  - **🔧 List View Tag Sorting**: IMPLEMENTED - Added tag-based sorting (Date, Title, Tags, Category) with dropdown control
+  - **Tag Filter Integration**: IMPLEMENTED - Added tag filtering with dropdown populated from available tags and clear button
+  - **UI Investigation**: RESOLVED - TagBoxes compact mode limitation removed, editing now works in both view modes
+  - **Sort Implementation**: COMPLETED - Sort controls added to header with tag sorting by count and alphabetical fallback
+  - **Layout Fix**: RESOLVED - TagBoxes fixed-width styling prevents card overflow and double-height issues
+  - **UX Enhancement**: ADDED - Category display in list view titles for consistency (Title - Category format)
+
+#### 4.4 Content Creation Tag Integration
+- [ ] **4.4.1** SermonGenerator category-based tag integration:
+  - Add 4-category tag selection interface to sermon creation form
+  - Display current tags organized by category when editing existing sermon content
+  - Category-specific autocomplete and suggestions based on sermon configuration
+  - Visual category slots with color coding and limit enforcement
+  - Smart suggestions: "Teaching & Education" for expository sermons, "Inspirational & Uplifting" for encouraging content
+- [ ] **4.3.2** StudyHall category-aware tag integration:
+  - Add categorized tag interface to file upload workflow  
+  - Category-based tag suggestions during save/edit operations
+  - Preview tags by category alongside other metadata before saving
+  - Intelligent category suggestions: "Personal Reflection" for journal uploads, "Scripture Study" for bible study content
+  - Auto-suggest replacement: convert old auto-generated tags to appropriate categories
+
+#### 4.4 Tag Filtering and Search Enhancement
+- [ ] **4.4.1** Implement tag-based filtering in LibraryStacks:
+  - Add tag filter section to existing filter controls
+  - Multi-tag filtering with AND/OR logic options
+  - Tag cloud visualization showing all available tags with usage counts
+  - Clear active tag filters with visual indicators
+- [ ] **4.4.2** Enhanced search with tag syntax:
+  - Support `tag:tagname` syntax in search bar
+  - Combine text search with tag filtering
+  - Search suggestions include popular tags
+  - Search history includes tag-based searches
+
+#### 4.5 Tag Analytics and Management Tools
+- [ ] **4.5.1** Tag usage analytics in settings:
+  - Most used tags dashboard
+  - Unused tags identification for cleanup
+  - Tag co-occurrence analysis (tags often used together)
+  - Content without tags identification
+- [ ] **4.5.2** Bulk tag operations:
+  - Bulk tag assignment to multiple content items
+  - Find and replace tag functionality
+  - Merge similar tags (e.g., "faith" and "Faith")
+  - Export tag usage report for analysis
+
+#### 4.6 Database and API Optimizations
+- [ ] **4.6.1** Tag-related database optimizations:
+  - Add database indexes for tag array queries for faster filtering
+  - Implement tag normalization (consistent casing, trimming)
+  - Add tag usage tracking table for analytics
+  - Database migration for tag improvements
+- [ ] **4.6.2** API performance enhancements:
+  - Cached tag list for autocomplete performance
+  - Batch tag update operations
+  - Tag validation middleware for consistent data
+  - Rate limiting for tag operations to prevent abuse
+
+#### 4.7 Testing and User Experience Validation
+- [ ] **4.7.1** Tag system testing:
+  - Test tag editing workflow on existing 29 tagged items
+  - Validate 5-tag limit enforcement across all interfaces
+  - Test tag library management operations (create, rename, delete)
+  - Performance testing with large tag libraries
+- [ ] **4.7.2** User interface validation:
+  - Responsive design for tag interfaces across devices
+  - Accessibility compliance for tag editing controls
+  - Visual consistency with existing design system
+  - Error handling and user feedback for all tag operations
+
+### Future Enhancements and Optimizations
+
+#### Container Architecture Improvements
+Based on current Docker build approach, consider these optimizations:
+
+**Multi-Stage Build Optimization**:
+- **Layer caching**: Optimize Dockerfile layer ordering for faster rebuilds
+- **Build context**: Use .dockerignore more aggressively to reduce build context size
+- **Dependency caching**: Separate dependency installation from code changes
+
+**Runtime Improvements**:
+- **Health checks**: Add comprehensive health check endpoints for both app and database
+- **Graceful shutdown**: Implement proper signal handling for container restarts
+- **Resource limits**: Add memory and CPU limits to compose.yaml for resource management
+
+**File Storage Enhancements**:
+- **Hybrid storage**: Runtime regeneration + caching for frequently changing content
+- **Compression**: Compress text files in build to reduce image size
+- **Selective inclusion**: Only include essential files in image, generate others at runtime
+
+**Development Workflow**:
+- **Hot reload**: Development-specific volume mounts for faster iteration
+- **Multi-environment**: Separate compose files for development vs production
+- **Automated testing**: Container-based test suites for CI/CD
+
+#### Existing Planned Enhancements
+- NAS backup integration  
+- Additional security hardening
+- Performance optimizations
+
+#### Bible Reference System Enhancements
+Based on analysis of current auto-extraction system that stores multiple references but only displays first:
+
+**Current System Behavior**:
+- Auto-extracts ALL Bible references from uploaded content using regex patterns
+- Stores first reference in `passage` field (displayed in UI)
+- Stores complete list in `metadata.bible_references` array (hidden)
+- Example: "John 3:16, Romans 8:28, Phil 4:13" → UI shows "John 3:16", metadata contains all three
+
+**Future Enhancement Opportunities**:
+- **Multiple Reference Display**: Show count indicator like "John 3:16 (+2 more)" in list/card views
+- **Reference Selection UI**: Allow users to select which reference becomes the primary display
+- **Enhanced Semantic Search**: Leverage complete `bible_references` array for verse-based content discovery
+- **Reference Accuracy**: Improve regex patterns for complex citations (chapter ranges, cross-references)
+- **Reference Validation**: Cross-reference against Bible database for accuracy and standardization
+- **Visual Reference Browser**: Modal/expandable view showing all detected references with context
+- **Smart Primary Selection**: Logic to identify most important reference (frequency, position, theological weight)
+
+## Technical Requirements
+
+### Local PC Requirements
+- Docker Engine 20.10+
+- 4GB RAM minimum (2GB for app, 2GB for PostgreSQL)
+- 10GB storage minimum
+- Network access to NAS for backups
+
+### NAS Integration
+- SMB/NFS mount for PostgreSQL data directory
+- Automated backup scripts
+- Version retention policy
+- Recovery procedures documentation
+
+### Security Considerations
+- Localhost-only access by default
+- Strong database passwords
+- Regular security updates
+- Data encryption for sensitive notes
+
+## Conclusion
+
+The **Single Container + External PostgreSQL** approach is recommended as it provides the best balance of simplicity, reliability, and future cloud deployment compatibility. The existing Dockerfile already supports this architecture, requiring minimal changes to implement a personal note management system while preserving the ability to deploy the full sermon organizer to the cloud.
+
+This approach ensures that both the personal note manager and the cloud-deployed sermon organizer can share the same codebase with appropriate configuration differences, maintaining development efficiency while serving distinct purposes.

@@ -173,3 +173,7 @@ models/
 /archive
 /project_documentation
 /scripts
+
+# Generated content directories (regenerated from database)
+/frontend/public/storage/
+/frontend/public/bibles/

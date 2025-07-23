@@ -4,19 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sermon Organizer is a FastAPI + React application for creating sermons, devotionals, and religious content using AI assistance. The project uses a hybrid architecture with PostgreSQL for main data storage and integrates with AI services (Claude/MiniMax) for content generation.
+Sermon Organizer is a FastAPI + React application for creating sermons, devotionals, and religious content using AI assistance. The project uses a hybrid architecture with PostgreSQL for main data storage and integrates with AI services (Grok primary, Claude fallback) for content generation.
 
 ## Architecture
 
 ### Backend (FastAPI)
 - **Framework**: FastAPI with SQLModel/SQLAlchemy for database operations
 - **Database**: PostgreSQL (configured in Docker Compose)
-- **AI Services**: Claude API and MiniMax API for sermon generation
+- **AI Services**: Grok API (primary) and Claude API (fallback) for sermon generation
 - **Authentication**: Currently single-user with no authentication system
 - **File Structure**:
   - `backend/main.py`: Application entry point with CORS, static file serving
   - `backend/api/`: Route modules (sermon_routes.py, storage_routes.py, profile_routes.py, chat_routes.py)
-  - `backend/services/`: Business logic (ai_service.py, claude_service.py, minimax_service.py, etc.)
+  - `backend/services/`: Business logic (ai_service.py, grok_service.py, claude_service.py, etc.)
 
 ### Frontend (React + Vite)
 - **Framework**: React 19 with Vite for development and building
@@ -78,14 +78,14 @@ python backend/migrate_database.py
 
 Required environment variables (set in .env or docker-compose):
 - `DATABASE_URL`: PostgreSQL connection string
-- `MINIMAX_API_KEY`: API key for MiniMax AI service
-- `CLAUDE_API_KEY`: API key for Claude AI service
+- `XAI_API_KEY`: API key for Grok AI service (primary)
+- `CLAUDE_API_KEY`: API key for Claude AI service (fallback)
 
 ## Key Components
 
 ### AI Integration
-- `claude_service.py`: Claude API integration for sermon generation
-- `minimax_service.py`: MiniMax API integration (alternative AI service)
+- `grok_service.py`: Grok API integration for sermon generation and content analysis (primary)
+- `claude_service.py`: Claude API integration for sermon generation and content analysis (fallback)
 - `prompt_service.py`: Manages sermon generation prompts and validation
 - Sermon generation supports multiple types, styles, lengths, and output formats
 
@@ -119,9 +119,9 @@ All services follow dependency injection pattern and are async-compatible. Servi
 
 ## AI Service Integration
 
-The application integrates with multiple AI providers:
-- Claude API for primary sermon generation
-- MiniMax API as alternative service
+The application integrates with AI providers using Grok-primary/Claude-fallback strategy:
+- Grok API for primary sermon generation and content analysis
+- Claude API as fallback service when Grok fails
 - Prompt templates stored in `prompt_service.py`
 - Logging of AI prompts in `backend/log_prompts/` directory
 

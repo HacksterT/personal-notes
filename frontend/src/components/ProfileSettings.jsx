@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiService } from '../services/api';
 
 const ProfileSettings = () => {
   // Hardcoded Bible versions (10 most common + Other)
@@ -38,8 +39,8 @@ const ProfileSettings = () => {
     const loadData = async () => {
       try {
         const [profileResponse, lookupResponse] = await Promise.all([
-          fetch('/api/profile/'),
-          fetch('/api/profile/lookup-data')
+          fetch(`${apiService.baseURL}/api/profile/`),
+          fetch(`${apiService.baseURL}/api/profile/lookup-data`)
         ]);
 
         if (profileResponse.ok) {
@@ -86,7 +87,7 @@ const ProfileSettings = () => {
     setSaving(true);
 
     try {
-      const response = await fetch('/api/profile/', {
+      const response = await fetch(`${apiService.baseURL}/api/profile/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

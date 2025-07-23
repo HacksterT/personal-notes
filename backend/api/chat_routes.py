@@ -168,7 +168,7 @@ def log_chat_prompt(user_message: str, full_prompt: str, conversation_history: L
             ],
             "full_prompt": full_prompt,
             "prompt_length": len(full_prompt),
-            "service": "minimax"
+            "service": "grok"
         }
         
         # Write to file

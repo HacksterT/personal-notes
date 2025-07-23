@@ -125,44 +125,50 @@ class StorageService:
         existing_id = content_data.get('id')
         
         if existing_id:
-            # This is an update - use the existing ID
+            # This is an update - only update fields that are provided
             content_id = existing_id
             async with self.pool.acquire() as conn:
-                await conn.execute("""
-                    UPDATE content_items SET
-                        title = $2,
-                        category = $3,
-                        content = $4,
-                        word_count = $5,
-                        passage = $6,
-                        tags = $7,
-                        file_type = $8,
-                        bible_references = $9,
-                        ai_processing_time_seconds = $10,
-                        key_themes = $11,
-                        thought_questions = $12,
-                        last_error = $13,
-                        size_bytes = $14,
-                        processing_status = $15,
-                        date_modified = NOW()
-                    WHERE id = $1 AND user_id = $16
-                """, content_id, 
-                    content_data.get('title', 'Untitled'),
-                    content_data.get('category', 'sermons'),
-                    content_data.get('content', ''),
-                    content_data.get('word_count', 0),
-                    content_data.get('passage'),
-                    content_data.get('tags', []),
-                    content_data.get('file_type'),
-                    content_data.get('bible_references', []),
-                    content_data.get('ai_processing_time_seconds'),
-                    content_data.get('key_themes', []),
-                    content_data.get('thought_questions', []),
-                    content_data.get('last_error'),
-                    content_data.get('size_bytes'),
-                    content_data.get('processing_status', 'pending'),
-                    user_id)
-            logger.info(f"Updated existing content: {content_id}")
+                # Build dynamic SQL for partial updates
+                update_fields = []
+                params = [content_id]
+                param_num = 2
+                
+                # Only include fields that are actually provided in the update
+                for field, column in [
+                    ('title', 'title'),
+                    ('category', 'category'), 
+                    ('content', 'content'),
+                    ('word_count', 'word_count'),
+                    ('passage', 'passage'),
+                    ('tags', 'tags'),
+                    ('file_type', 'file_type'),
+                    ('bible_references', 'bible_references'),
+                    ('ai_processing_time_seconds', 'ai_processing_time_seconds'),
+                    ('key_themes', 'key_themes'),
+                    ('thought_questions', 'thought_questions'),
+                    ('last_error', 'last_error'),
+                    ('size_bytes', 'size_bytes'),
+                    ('processing_status', 'processing_status')
+                ]:
+                    if field in content_data:
+                        update_fields.append(f"{column} = ${param_num}")
+                        params.append(content_data[field])
+                        param_num += 1
+                
+                # Always update date_modified
+                update_fields.append("date_modified = NOW()")
+                
+                if update_fields:
+                    sql = f"""
+                        UPDATE content_items SET
+                            {', '.join(update_fields)}
+                        WHERE id = $1 AND user_id = ${param_num}
+                    """
+                    params.append(user_id)
+                    
+                    await conn.execute(sql, *params)
+                    logger.info(f"Updated existing content: {content_id} (fields: {list(content_data.keys())})")
+                
         else:
             # This is new content - generate a new ID
             content_id = str(uuid.uuid4())

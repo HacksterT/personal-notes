@@ -1,0 +1,232 @@
+# App6 Development Plan: Social Media Posts Category Implementation
+
+## Overview
+Adding a new "Social Media Posts" category to the Library Stacks system using the existing tag management system. Platform tags (FB, IG, X, LI, TT, YT) will be predefined, non-editable tags exclusive to the social-media-posts category, displayed as compact circular tags with 2-letter initials.
+
+## Phase 1: Database & Backend Infrastructure
+
+### 1.1 Database Schema Changes
+- [x] Add new category type "social-media-posts" to existing category enum/validation
+- [x] Add post_tags TEXT[] field to content_items table for platform tags
+- [x] Create predefined platform tags in frontend system (NOT database):
+  - [x] "FB" (Facebook) - handled in frontend TagBoxes component
+  - [x] "IG" (Instagram) - handled in frontend TagBoxes component  
+  - [x] "X" (formerly Twitter) - handled in frontend TagBoxes component
+  - [x] "LI" (LinkedIn) - handled in frontend TagBoxes component
+  - [x] "TT" (TikTok) - handled in frontend TagBoxes component
+  - [x] "YT" (YouTube) - handled in frontend TagBoxes component
+- [x] Frontend platform tag logic:
+  - [x] Platform tags stored in post_tags field (social-media-posts category only)
+  - [x] Regular tags continue using existing tags field
+  - [x] Category-based field selection logic in TagBoxes component
+- [ ] UI-only generation types (NOT stored in database):
+  - Script vs Post distinction (handled in generation UI only)
+  - Story/Reel, Thread, Carousel, General (these are generation parameters only)
+
+### 1.2 Backend API Updates (Complete)
+- [x] Category API updated - social-media-posts category added to validation
+- [x] Update storage service to handle post_tags field for social-media-posts category
+- [x] Modify content creation/update endpoints to save platform tags to post_tags field
+- [x] Update content retrieval to return both tags and post_tags fields
+- [x] Added dedicated PUT /content/{id}/post_tags endpoint for post_tags updates
+- [x] Platform validation (FB, IG, X, LI, TT, YT) and 3-tag limit enforcement
+- [x] Category restriction - post_tags only allowed for social-media-posts
+
+## Phase 2: Frontend Library Stacks Integration
+
+### 2.1 Category Management
+- [x] Update LibraryStacks.jsx to include "social-media-posts" category
+- [x] Add Social Media Posts icon (💬) to category list
+- [x] Update category selection logic to handle new category
+- [x] Add category count tracking for social media posts
+- [x] Update category loading/refreshing functions
+
+### 2.2 TagBoxes Component Updates
+- [x] Created separate TagBoxesPost component for post_tags management
+- [x] Add compact circular tag display for platform tags (FB, IG, X, LI, TT, YT)
+- [x] Implement 2-letter initial display in small circles
+- [x] Add category-aware tag filtering (show platform tags only for social-media-posts)
+- [x] Update tag selection UI to show predefined platform tags with + icons
+- [x] Separate save workflow for post_tags (independent of regular tags)
+- [x] Direct API integration with updateContentPostTags endpoint
+
+### 2.3 Artifact Card Updates (Complete)
+- [x] TagBoxesPost component positioned next to category title
+- [x] Post tags appear as brown circular tags with 2-letter abbreviations
+- [x] Dropdown selection with full platform names (Facebook, Instagram, etc.)
+- [x] Separate save button for post_tags ("Save Post Tags")
+- [x] Click-outside handling and proper event management
+
+### 2.4 Post Tag Filtering
+- [ ] Add post_tag filter section to the left of regular Filter Tags
+- [ ] Should have 2 filter slots with same AND/OR design as regular tag filters
+- [ ] Only appears when Social Media Posts category is selected in grid view
+- [ ] Also appears in list view in same position
+- [ ] Filter by platform tags: FB, IG, X, LI, TT, YT
+- [ ] Uses same dropdown selection and filtering logic as regular tags
+
+### 2.5 Upload & Creation Flow
+- [ ] Update file upload to suggest platform tags for social-media-posts category
+- [ ] Show platform tag quick-select buttons during upload to social-media-posts
+- [ ] Leverage existing tag assignment workflow
+- [ ] No new validation needed - uses existing tag system
+
+## Phase 3: Social Media Studio Integration
+
+### 3.1 Content Generation
+- [ ] Update SocialMediaStudio to save generated content with platform tags
+- [ ] Add platform tag quick-select in generation interface
+- [ ] Integrate with existing tag assignment workflow
+- [ ] Update content transfer from studio to library with platform tags
+
+### 3.2 Studio UI Updates
+- [ ] Add platform tag selector (FB, IG, X, LI, TT, YT) as compact circles with +
+- [ ] Update save/export functionality to include platform tags
+- [ ] Display selected platform tags in generated content preview
+- [ ] Update session memory to store platform tag preferences
+
+## Phase 4: Search & Filtering Enhancements (Leverages Existing Tag System)
+
+### 4.1 Advanced Filtering
+- [ ] Platform tags automatically work with existing multi-tag filter system
+- [ ] No new filter UI needed - uses existing tag filtering
+- [ ] Platform tags searchable through existing tag search
+- [ ] Category + platform tag combinations work automatically
+
+### 4.2 Search Functionality
+- [ ] Platform tags indexed through existing tag search system
+- [ ] No new search API changes needed
+- [ ] Existing search results automatically include platform tag info
+- [ ] Platform tag filtering works through existing tag filter mechanisms
+
+## Phase 5: Content Management Features
+
+### 5.1 Bulk Operations
+- [ ] Add bulk subcategory assignment functionality
+- [ ] Update bulk export to include subcategory metadata
+- [ ] Create subcategory migration tools for existing content
+- [ ] Add subcategory statistics and reporting
+
+### 5.2 Content Organization
+- [ ] Update content viewer modal to show subcategory
+- [ ] Add subcategory editing in content management
+- [ ] Create subcategory-based content organization views
+- [ ] Update Active Resources to display subcategories
+
+## Phase 6: API Service Layer Updates
+
+### 6.1 API Client Updates
+- [ ] Update apiService.js to handle subcategory parameters
+- [ ] Add subcategory CRUD methods to API service
+- [ ] Update content fetching methods to include subcategory data
+- [ ] Add subcategory validation helpers
+
+### 6.2 Error Handling
+- [ ] Add subcategory-specific error messages
+- [ ] Update validation error handling for subcategories
+- [ ] Create subcategory conflict resolution logic
+- [ ] Add subcategory data recovery mechanisms
+
+## Phase 7: Testing & Quality Assurance
+
+### 7.1 Unit Testing
+- [ ] Create tests for subcategory CRUD operations
+- [ ] Test subcategory validation logic
+- [ ] Test subcategory filtering and search
+- [ ] Test subcategory display components
+
+### 7.2 Integration Testing
+- [ ] Test complete upload flow with subcategories
+- [ ] Test cross-component subcategory data flow
+- [ ] Test subcategory migration scripts
+- [ ] Test subcategory performance impact
+
+### 7.3 User Experience Testing
+- [ ] Test subcategory UI/UX across different screen sizes
+- [ ] Validate subcategory accessibility features
+- [ ] Test subcategory workflow efficiency
+- [ ] Gather user feedback on subcategory implementation
+
+## Phase 8: Documentation & Deployment
+
+### 8.1 Documentation Updates
+- [ ] Update API documentation with subcategory endpoints
+- [ ] Create user guide for subcategory features
+- [ ] Update developer documentation for subcategory system
+- [ ] Create subcategory troubleshooting guide
+
+### 8.2 Deployment Preparation
+- [ ] Create deployment checklist for subcategory features
+- [ ] Prepare database migration deployment scripts
+- [ ] Update environment configuration for subcategories
+- [ ] Plan rollback procedures for subcategory implementation
+
+## Technical Considerations
+
+### Database Impact
+- Modified table: `content_items` (+post_tags TEXT[] field)
+- No new tables needed - leverages existing content storage
+- Platform tags stored as text array in post_tags field (social-media-posts category only)
+- Regular tags continue using existing tags field
+- No new indexes needed - uses existing array field patterns
+
+### Performance Considerations
+- Minimal performance impact - adds one TEXT[] field to existing queries
+- Platform tags use same array query patterns as existing tags field
+- No new search indexing needed - post_tags field works like existing tags field
+- Frontend handles all platform tag logic without backend complexity
+
+### Backward Compatibility  
+- Existing content unaffected - post_tags field is nullable and optional
+- All existing API endpoints remain unchanged (will just return null for post_tags)
+- Frontend components work exactly as before for existing categories
+- Zero migration needed for existing content - new field starts empty
+
+## File Impact Estimate (Dramatically Reduced)
+
+### Backend Files (~2-3 files)
+- Storage service updates (handle post_tags field)
+- Content API endpoints (save/retrieve post_tags)
+- Database schema documentation updates
+
+### Frontend Components (~4-5 files)
+- ✅ TagBoxesPost.jsx (new component for post_tags management)
+- ✅ TagBoxes.jsx (cleaned up - removed post_tags code)
+- ✅ LibraryStacks.jsx (integrated TagBoxesPost component)
+- [ ] SocialMediaStudio.jsx (add platform tag quick-selects)  
+- ✅ No CSS updates needed - uses inline Tailwind styling
+
+### Styling & Assets 
+- ✅ No separate CSS files needed - uses inline Tailwind styling
+- ✅ No new icons needed - uses 2-letter initials in circular brown tags
+
+### Total Files Modified: 4 files (vs 25-35 originally planned)
+- ✅ TagBoxesPost.jsx (created)
+- ✅ TagBoxes.jsx (cleaned up)
+- ✅ LibraryStacks.jsx (integrated TagBoxesPost)
+- ✅ storage_routes.py (added post_tags endpoint)
+
+## Priority Implementation Order (Updated)
+1. ✅ Add post_tags field to PostgreSQL database
+2. ✅ Add social-media-posts category to LibraryStacks  
+3. ✅ Update backend storage service to handle post_tags field
+4. ✅ Create TagBoxesPost component for post_tags management
+5. ✅ Implement post_tags UI next to category titles
+6. ✅ Add dedicated API endpoint for post_tags updates
+7. ✅ Code cleanup - remove unused post_tags code from TagBoxes
+8. [ ] Add post_tag filtering (2 slots, left of regular Filter Tags)
+9. [ ] Add platform tag quick-selects to SocialMediaStudio
+10. [ ] Polish and testing
+
+## Success Criteria
+- [x] Users can create social media posts with platform tag classification
+- [x] Platform tags display as compact circles with 2-letter initials
+- [x] Platform tags work independently from regular tag system
+- [x] Separate save workflow for post_tags with dedicated API endpoint
+- [x] Brown circular styling with dropdown selection (FB→Facebook, etc.)
+- [x] Post tags positioned next to category title for social-media-posts only
+- [x] Zero performance impact - leverages existing tag infrastructure
+- [x] All existing functionality continues to work without regression
+- [ ] Upload flow includes easy platform tag selection
+- [ ] Post_tag filtering works with 2 slots (AND/OR) for social-media-posts category
+- [ ] Platform tags integrate with existing search and filtering

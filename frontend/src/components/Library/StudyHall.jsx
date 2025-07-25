@@ -40,6 +40,7 @@ const StudyHall = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isLibrarianTyping, setIsLibrarianTyping] = useState(false);
   const [chatError, setChatError] = useState('');
+  const [includeNoteContext, setIncludeNoteContext] = useState(true);
   
   // Bible data state
   const [bibleVerses, setBibleVerses] = useState([]);
@@ -241,7 +242,7 @@ const StudyHall = () => {
     try {
       console.log('📚 Loading available resources from library...');
       
-      const categories = ['sermons', 'study-notes', 'research', 'journal', 'bookmarks'];
+      const categories = ['sermons', 'study-notes', 'research', 'journal', 'social-media-posts'];
       let allResources = [];
       
       // Load recent resources from each category
@@ -358,8 +359,8 @@ const StudyHall = () => {
       }));
       const conversationHistory = allConversationHistory.slice(-4); // Last 4 messages only
       
-      // Build study context
-      const studyContext = {
+      // Build context based on radio button selection
+      const context = includeNoteContext ? {
         current_passage: selectedPassage,
         study_notes: studyNotes.substring(0, 1000), // First 1000 chars for context
         active_resources: selectedResources.map(resource => ({
@@ -367,6 +368,8 @@ const StudyHall = () => {
           category: resource.category,
           key_themes: resource.key_themes || []
         }))
+      } : {
+        mode: 'general_biblical_guidance' // Signal for backend to use KJV-focused prompt
       };
       
       // Call backend API
@@ -378,7 +381,7 @@ const StudyHall = () => {
         body: JSON.stringify({
           message: currentMessage,
           conversation_history: conversationHistory,
-          context: studyContext
+          context: context
         })
       });
       
@@ -1429,14 +1432,11 @@ const StudyHall = () => {
         {/* AI Librarian - Right Side */}
         <div className="bg-library-dark border-l border-brass/30 flex flex-col">
           {/* AI Header */}
-          <div className="p-4 border-b border-brass/30 bg-brass/10">
+          <div className="p-2 border-b border-brass/30 bg-brass/10">
             <h3 className="text-xl font-cormorant text-brass flex items-center gap-2">
               <MessageCircle size={20} />
-              Study Librarian
+              Study Libarian
             </h3>
-            <p className="text-brass-light text-sm mt-1 opacity-80">
-              Your AI theological assistant
-            </p>
           </div>
 
           {/* Chat History Area - Reduced Height */}
@@ -1486,6 +1486,20 @@ const StudyHall = () => {
                 Ask Librarian
               </button>
             </form>
+            
+            {/* Include Note Context Toggle */}
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="includeNote"
+                checked={includeNoteContext}
+                onChange={(e) => setIncludeNoteContext(e.target.checked)}
+                className="text-brass focus:ring-brass"
+              />
+              <label htmlFor="includeNote" className="text-brass-light text-xs cursor-pointer">
+                Include Note Context
+              </label>
+            </div>
           </div>
 
           {/* Active Resources - More Space */}
@@ -1575,7 +1589,7 @@ const StudyHall = () => {
                   <option value="study-notes">Study Notes</option>
                   <option value="research">Research</option>
                   <option value="journal">Journal</option>
-                  <option value="bookmarks">Bookmarks</option>
+                  <option value="social-media-posts">Social Media Posts</option>
                 </select>
               </div>
 

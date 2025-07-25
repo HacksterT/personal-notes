@@ -28,7 +28,7 @@ const LibraryEntrance = () => {
     },
     {
       icon: Share2,
-      title: "Social Media",
+      title: "Social Media Studio",
       description: "Publishing & Distribution", 
       path: "/social",
     }
@@ -91,8 +91,6 @@ const LibraryEntrance = () => {
               </p>
             </div>
 
-            {/* Door Handle */}
-            <div className="door-handle"></div>
           </div>
         ))}
       </div>

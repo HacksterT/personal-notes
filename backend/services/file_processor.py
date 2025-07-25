@@ -70,17 +70,6 @@ class FileProcessor:
             'Jude', 'Revelation'
         ]
         
-        # Common theological terms for tag generation
-        self.theological_terms = [
-            'salvation', 'grace', 'faith', 'love', 'hope', 'peace', 'joy',
-            'forgiveness', 'redemption', 'sanctification', 'justification',
-            'eternal life', 'kingdom', 'gospel', 'cross', 'resurrection',
-            'trinity', 'christ', 'jesus', 'god', 'holy spirit', 'prayer',
-            'worship', 'discipleship', 'stewardship', 'evangelism', 'mission',
-            'church', 'community', 'fellowship', 'service', 'ministry',
-            'wisdom', 'truth', 'righteousness', 'holiness', 'mercy',
-            'compassion', 'healing', 'restoration', 'transformation'
-        ]
     
     async def process_file(self, filename: str, content_bytes: bytes, 
                           file_type: str) -> Dict[str, Any]:
@@ -109,8 +98,8 @@ class FileProcessor:
             passages = self._extract_bible_references(text_content)
             main_passage = passages[0] if passages else None
             
-            # Generate tags
-            tags = self._generate_tags(text_content)
+            # Tags are now manually assigned by users through the UI
+            tags = []
             
             # Calculate word count
             word_count = len(text_content.split())
@@ -204,7 +193,7 @@ class FileProcessor:
     def _generate_title(self, filename: str, content: str) -> str:
         """Generate title from filename or content"""
         # For sermon files, prioritize filename title (user-provided)
-        filename_title = Path(filename).stem.replace('_', ' ').replace('-', ' ').title()
+        filename_title = Path(filename).stem.replace('_', ' ').replace('-', ' ')
         
         # If filename looks like a meaningful title (not just generic names), use it
         generic_names = ['untitled', 'sermon', 'document', 'text', 'file', 'new', 'draft']
@@ -274,46 +263,6 @@ class FileProcessor:
         
         return references[:10]  # Limit to first 10 references
     
-    def _generate_tags(self, content: str) -> List[str]:
-        """Generate tags based on content analysis"""
-        tags = []
-        content_lower = content.lower()
-        
-        # Find theological terms
-        for term in self.theological_terms:
-            if term.lower() in content_lower:
-                tags.append(term)
-        
-        # Add content-based tags
-        if 'sermon' in content_lower:
-            tags.append('sermon')
-        if 'study' in content_lower:
-            tags.append('bible study')
-        if 'prayer' in content_lower:
-            tags.append('prayer')
-        if 'worship' in content_lower:
-            tags.append('worship')
-        
-        # Analyze content themes (simple keyword detection)
-        theme_keywords = {
-            'christmas': ['christmas', 'nativity', 'birth of christ', 'bethlehem'],
-            'easter': ['easter', 'resurrection', 'crucifixion', 'cross'],
-            'pentecost': ['pentecost', 'holy spirit', 'tongues', 'flames'],
-            'advent': ['advent', 'waiting', 'preparation', 'coming'],
-            'discipleship': ['disciple', 'follow', 'learn', 'teach'],
-            'evangelism': ['evangel', 'witness', 'share', 'gospel'],
-            'stewardship': ['steward', 'giving', 'tithe', 'resources'],
-            'community': ['community', 'fellowship', 'together', 'unity'],
-            'leadership': ['lead', 'serve', 'shepherd', 'guide']
-        }
-        
-        for theme, keywords in theme_keywords.items():
-            if any(keyword in content_lower for keyword in keywords):
-                tags.append(theme)
-        
-        # Remove duplicates and limit
-        unique_tags = list(dict.fromkeys(tags))  # Preserves order
-        return unique_tags[:5]  # Limit to 5 tags
     
     def validate_file_type(self, filename: str, file_type: str) -> bool:
         """Validate if file type is supported"""

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
-import { tagCategories, organizeTagsByCategory, flattenOrganizedTags, prescriptiveTags } from '../constants/tagConstants';
+import { tagCategories, organizeTagsByCategory, prescriptiveTags } from '../constants/tagConstants';
 
-const TagBoxes = ({ tags = [], compact = false, contentId, onTagsChange }) => {
+const TagBoxes = ({ tags = [], category, compact = false, contentId, onTagsChange }) => {
   // State for current tag selections (editable)
   const [currentTags, setCurrentTags] = useState(tags);
   const [hasChanges, setHasChanges] = useState(false);
@@ -107,12 +107,13 @@ const TagBoxes = ({ tags = [], compact = false, contentId, onTagsChange }) => {
     setActiveDropdown(null);
   };
 
+
   const handleSaveTags = async () => {
     if (!contentId || !onTagsChange) return;
     
     setSaving(true);
     try {
-      // Call parent component's save function
+      // Call parent component's save function with regular tags
       await onTagsChange(contentId, currentTags);
       setHasChanges(false);
     } catch (error) {
@@ -146,9 +147,12 @@ const TagBoxes = ({ tags = [], compact = false, contentId, onTagsChange }) => {
     return tagName.length > maxLength ? tagName.substring(0, maxLength) + '...' : tagName;
   };
 
+
+
   return (
     <div className="relative">
       <div className={`flex gap-1 ${compact ? 'flex-wrap' : 'flex-nowrap'}`}>
+        {/* Regular tag slots */}
         {slots.map((slot) => {
           const category = tagCategories[slot.category];
           const isEmpty = !slot.tag;

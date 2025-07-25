@@ -260,6 +260,67 @@ async def update_content_tags(
         logger.error(f"Failed to update tags for content {content_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@storage_router.put("/content/{content_id}/post_tags")
+async def update_content_post_tags(
+    content_id: str,
+    post_tags_data: dict,
+    storage_service: StorageService = Depends(get_storage_service)
+):
+    """Update only the post_tags (platform tags) for a social media content item"""
+    try:
+        # Verify content exists
+        existing = await storage_service.get_content(DEFAULT_USER_ID, content_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Content not found")
+        
+        # Verify this is a social-media-posts category item
+        if existing.get('category') != 'social-media-posts':
+            raise HTTPException(status_code=400, detail="Post tags are only allowed for social-media-posts category")
+        
+        # Extract post_tags from request
+        new_post_tags = post_tags_data.get('post_tags', [])
+        
+        # Validate post_tags (should be a list of strings)
+        if not isinstance(new_post_tags, list):
+            raise HTTPException(status_code=400, detail="Post tags must be a list")
+        
+        if len(new_post_tags) > 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 platform tags allowed")
+        
+        # Valid platform codes
+        valid_platforms = ['FB', 'IG', 'X', 'LI', 'TT', 'YT']
+        
+        # Clean and validate platform tag strings
+        cleaned_post_tags = []
+        for tag in new_post_tags:
+            if isinstance(tag, str) and tag.strip().upper() in valid_platforms:
+                cleaned_post_tags.append(tag.strip().upper())
+        
+        logger.info(f"Updating post_tags for content {content_id}: {cleaned_post_tags}")
+        
+        # Update only the post_tags field
+        update_data = {
+            'id': content_id,
+            'post_tags': cleaned_post_tags
+        }
+        
+        await storage_service.store_content(
+            user_id=DEFAULT_USER_ID,
+            content_data=update_data
+        )
+        
+        return {
+            'success': True, 
+            'message': 'Platform tags updated successfully',
+            'post_tags': cleaned_post_tags
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update post_tags for content {content_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @storage_router.delete("/content/{content_id}")
 async def delete_content(
     content_id: str,
@@ -351,7 +412,8 @@ async def get_categories():
         {'value': 'study-notes', 'label': 'Study Notes'},
         {'value': 'research', 'label': 'Research'},
         {'value': 'journal', 'label': 'Journal'},
-        {'value': 'bookmarks', 'label': 'Bookmarks'}
+        {'value': 'bookmarks', 'label': 'Bookmarks'},
+        {'value': 'social-media-posts', 'label': 'Social Media Posts'}
     ]
     return {'categories': categories}
 

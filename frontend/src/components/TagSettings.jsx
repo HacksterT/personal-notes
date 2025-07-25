@@ -57,7 +57,14 @@ const TagSettings = () => {
           'teaching & education': 6,
           'personal reflection': 9,
           'expository & scholarly': 4,
-          'example custom tag': 2
+          'example custom tag': 2,
+          // Social Media Platform Tags
+          'FB': 5,
+          'IG': 8,
+          'X': 3,
+          'LI': 2,
+          'TT': 6,
+          'YT': 4
         };
         setTagUsage(mockUsage);
         
@@ -328,6 +335,45 @@ const TagSettings = () => {
         </div>
       ))}
 
+      {/* Social Media Tags Section */}
+      <div className="mt-8 p-6 bg-amber-900/30 rounded-lg border border-brass/20">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-3 h-3 rounded-full bg-amber-800"></div>
+          <h3 className="text-xl font-semibold text-brass-light">Social Media Tags</h3>
+          <span className="text-sm text-brass-light/60">(Platform-specific tags for social media posts)</span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { code: 'FB', name: 'Facebook' },
+            { code: 'IG', name: 'Instagram' },
+            { code: 'X', name: 'Twitter/X' },
+            { code: 'LI', name: 'LinkedIn' },
+            { code: 'TT', name: 'TikTok' },
+            { code: 'YT', name: 'YouTube' }
+          ].map((platform) => (
+            <div 
+              key={platform.code}
+              className="flex flex-col items-center p-3 bg-amber-900/50 rounded-lg border border-amber-800/50 hover:bg-amber-900/70 transition-colors duration-200"
+            >
+              <div className="w-10 h-10 bg-amber-800 rounded-full flex items-center justify-center mb-2">
+                <span className="text-amber-100 font-bold text-sm">{platform.code}</span>
+              </div>
+              <span className="text-amber-200 text-xs text-center">{platform.name}</span>
+            </div>
+          ))}
+        </div>
+        
+        <div className="mt-4 flex items-center justify-between p-3 bg-amber-900/20 rounded border border-amber-800/30">
+          <div className="text-amber-200/80 text-sm">
+            <strong>Platform Tags:</strong> Available for social media posts
+          </div>
+          <div className="text-amber-200 text-sm font-medium">
+            6 tags active
+          </div>
+        </div>
+      </div>
+
       {/* Usage Statistics */}
       <div className="mt-8 p-4 bg-library-dark/20 rounded-lg">
         <h3 className="text-lg font-semibold text-brass-light mb-3">Tag Usage Overview</h3>
@@ -355,6 +401,10 @@ const TagSettings = () => {
                   <span className="text-brass">{tagLibrary[key].length} tags</span>
                 </div>
               ))}
+              <div className="flex justify-between text-sm">
+                <span className="text-brass-light/80">Social Media Tags</span>
+                <span className="text-brass">6 tags</span>
+              </div>
             </div>
           </div>
         </div>

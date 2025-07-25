@@ -110,3 +110,18 @@ export const flattenOrganizedTags = (organizedTags) => {
     ...organizedTags.custom
   ];
 };
+
+// Social Media Platform Tags (for social-media-posts category only)
+export const socialMediaPlatforms = [
+  { code: 'FB', name: 'Facebook' },
+  { code: 'IG', name: 'Instagram' },
+  { code: 'X', name: 'Twitter/X' },
+  { code: 'LI', name: 'LinkedIn' },
+  { code: 'TT', name: 'TikTok' },
+  { code: 'YT', name: 'YouTube' }
+];
+
+// Helper function to get platform by code
+export const getPlatformByCode = (code) => {
+  return socialMediaPlatforms.find(platform => platform.code === code);
+};

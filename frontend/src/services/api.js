@@ -143,6 +143,16 @@ class APIService {
     return await this.handleResponse(response);
   }
 
+  async updateContentPostTags(contentId, postTags) {
+    const response = await fetch(`${this.baseURL}/api/storage/content/${contentId}/post_tags`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_tags: postTags })
+    });
+
+    return await this.handleResponse(response);
+  }
+
   async deleteContent(contentId) {
     const response = await fetch(`${this.baseURL}/api/storage/content/${contentId}`, {
       method: 'DELETE',

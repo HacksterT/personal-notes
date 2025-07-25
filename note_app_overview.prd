@@ -175,6 +175,17 @@ CLAUDE_API_KEY=<claude-api-key>
 - **Goal**: Token reduction while preserving meaning and structure
 - **Approach**: Sentence-level filtering with relevance scoring
 
+### Tag Usage Analytics System
+- **Current**: Mock data showing static usage counts in Tag Settings interface
+- **Planned**: Real-time tag usage tracking and analytics dashboard
+- **Features**: 
+  - Database queries to count actual tag usage from `tags` and `post_tags` fields
+  - API endpoints for tag statistics (`/api/storage/tags/usage`)
+  - PostgreSQL array analytics with `UNNEST()` and `COUNT()` operations
+  - Usage trend analysis and most/least used tag identification
+  - Platform-specific social media tag analytics (FB, IG, X, LI, TT, YT)
+- **Benefits**: Data-driven tag management, content optimization insights, user behavior analysis
+
 ### UI/UX Improvements
 - **Custom Modal System**: Replace browser alerts/confirms with styled modal components
   - **Current**: Using browser's default `alert()` and `confirm()` dialogs (ugly, inconsistent)
@@ -184,10 +195,10 @@ CLAUDE_API_KEY=<claude-api-key>
   - **Design**: Wood/brass theme with proper shadows, rounded corners, and branded typography
 
 ### Performance Optimizations
-- **Multi-stage builds**: Optimized Docker layer caching
-- **Health checks**: Comprehensive monitoring endpoints  
-- **Resource limits**: Memory and CPU constraints
-- **Compression**: Text file optimization
+- **Multi-stage builds**: Optimized Docker layer caching for reduced image size
+- **Health checks**: Comprehensive monitoring endpoints (`/health`, `/api/health`)
+- **Resource limits**: Memory and CPU constraints configuration for production deployment
+- **Compression**: Text file optimization and efficient static file serving
 
 ## Security & Data Management
 
@@ -198,9 +209,13 @@ CLAUDE_API_KEY=<claude-api-key>
 - **API Keys**: Environment variable configuration
 
 ### Backup Strategy
-- **Planned**: NAS integration for automated backups
-- **Database**: PostgreSQL data directory mounting
-- **Content**: File-based export capabilities
+- **NAS Integration**: Automated database backups via volume mounting to NAS location
+  - **Database Path**: Mount PostgreSQL data directory to `/path/to/nas/backup`
+  - **Frequency**: Continuous protection via Docker volume persistence
+  - **File Storage**: Build-time inclusion ensures content is part of container image
+- **Database**: PostgreSQL data directory mounting for external persistence
+- **Content**: File-based export capabilities and JSON format with full metadata
+- **Recovery**: Container rebuild automatically includes all files and connects to persistent database
 
 ## Integration Points
 
@@ -213,5 +228,70 @@ CLAUDE_API_KEY=<claude-api-key>
 - **Export**: JSON format with full metadata
 - **Import**: File upload with automatic processing
 - **Migration**: Database schema evolution support
+
+#### 5.4.1 Presentation Enhancement
+- [ ] **Delivery Aids Generation**:
+  - Auto-generated speaker notes with key points and transitions
+  - Timing guides with pacing recommendations
+  - Audience interaction cues and engagement prompts
+  - Visual aid suggestions and slide deck integration
+
+- [ ] **Practice and Rehearsal Tools**:
+  - Delivery timing analysis with section breakdown
+  - Key phrase highlighting for emphasis points
+  - Transition practice aids with flow reminders
+  - Delivery confidence scoring and improvement suggestions
+
+  #### 5.4.2 Audience Engagement Features
+- [ ] **Interactive Elements**:
+  - Discussion question generation for small group integration
+  - Take-home application suggestions with practical steps
+  - Follow-up resource recommendations for deeper study
+  - Social media and digital sharing optimization
+
+#### 5.5.1 Sermon Analytics Dashboard
+- [ ] **Preparation Analytics**:
+  - Time tracking for sermon preparation stages
+  - Resource utilization analysis and optimization suggestions
+  - Preparation efficiency metrics and trend analysis
+  - Content library usage patterns and gap identification
+
+- [ ] **Content Quality Metrics**:
+  - Theological depth scoring using AI analysis
+  - Biblical reference coverage and balance assessment
+  - Audience appropriateness evaluation
+  - Engagement potential scoring for sermon components
+
+#### 5.5.2 Continuous Improvement System
+- [ ] **Learning from History**:
+  - Historical sermon analysis for pattern recognition
+  - Successful sermon component identification and reuse
+  - Topic coverage analysis and gap identification
+  - Seasonal and liturgical calendar integration
+
+- [ ] **AI-Powered Optimization**:
+  - Sermon improvement suggestions based on analysis
+  - Content gap identification and resource recommendations
+  - Style evolution tracking and development suggestions
+  - Personalized preparation workflow optimization
+
+  #### 5.6.2 Workflow Automation
+- [ ] **Automated Preparation Tasks**:
+  - Weekly sermon preparation workflow initiation
+  - Resource collection automation based on upcoming topics
+  - Reminder and deadline management system
+  - Preparation checklist automation with smart recommendations
+
+- [ ] **Export and Distribution**:
+  - Automated export to presentation software
+  - Bulletin and handout generation
+  - Website and social media content creation
+  - Audio script preparation for recording/streaming
+
+  - [ ] **Smart Resource Recommendations**:
+    - AI-powered analysis of sermon topic to suggest relevant library content
+    - Scripture cross-reference suggestions based on stored bible references
+    - Theme-based content discovery using existing key_themes data
+    - Historical sermon analysis: "You've preached on similar topics in..."
 
 This overview provides comprehensive context for understanding the project architecture, current capabilities, and development patterns. Use this as the primary reference for rapid project onboarding and feature development planning.

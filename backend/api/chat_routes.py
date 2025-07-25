@@ -122,18 +122,27 @@ def build_librarian_prompt(user_message: str, conversation_history: List[ChatMes
                 conversation_context += f"{role}: {content}\n"
             conversation_context += "\n"
     
-    # Build minimal study context
-    study_context_text = ""
-    if study_context:
-        if study_context.get('study_notes'):
-            # Only include first 1000 chars of notes for context
-            notes_preview = study_context['study_notes'][:1000].strip()
-            study_context_text += f"Current notes: {notes_preview}...\n"
-        if study_context_text:
-            study_context_text += "\n"
-    
-    # Build clean, concise prompt
-    prompt = f"""You are the Study Librarian, a theological AI assistant for pastors and Bible teachers.
+    # Check if this is general biblical guidance mode (checkbox unchecked)
+    if study_context and study_context.get('mode') == 'general_biblical_guidance':
+        # Use the specific prompt when Include Note Context is unchecked
+        prompt = f"""Answer as if you are a pastor and follower of Jesus Christ, staying grounded in the King James Bible.
+
+{conversation_context}Question: {user_message}
+
+Provide a helpful biblical answer (2-3 sentences):"""
+    else:
+        # Build minimal study context (existing behavior)
+        study_context_text = ""
+        if study_context:
+            if study_context.get('study_notes'):
+                # Only include first 1000 chars of notes for context
+                notes_preview = study_context['study_notes'][:1000].strip()
+                study_context_text += f"Current notes: {notes_preview}...\n"
+            if study_context_text:
+                study_context_text += "\n"
+        
+        # Build clean, concise prompt (existing behavior)
+        prompt = f"""You are the Study Librarian, a theological AI assistant for pastors and Bible teachers.
 
 {study_context_text}{conversation_context}Question: {user_message}
 

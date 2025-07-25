@@ -22,6 +22,7 @@ import {
 
 // Import our API service and navigation
 import { apiService } from '../../services/api';
+import TagBoxesPost from '../TagBoxesPost';
 
 // Simple markdown renderer for sermon content
 const MarkdownRenderer = ({ content }) => {
@@ -101,7 +102,7 @@ const LibraryStacks = () => {
     { tag: '', operator: 'AND' },
     { tag: '', operator: 'AND' },
     { tag: '', operator: 'AND' }
-  ]); // 3 tag filters with individual AND/OR operators
+  ]);
   const [allContent, setAllContent] = useState([]); // All content across categories for list view
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -192,7 +193,8 @@ useEffect(() => {
         sermons: { name: 'Sermons', icon: '📜', count: 0, totalSizeBytes: 0 },
         'study-notes': { name: 'Study Notes', icon: '📖', count: 0, totalSizeBytes: 0 },
         research: { name: 'Research', icon: '🔍', count: 0, totalSizeBytes: 0 },
-        journal: { name: 'Journal', icon: '📔', count: 0, totalSizeBytes: 0 }
+        journal: { name: 'Journal', icon: '📔', count: 0, totalSizeBytes: 0 },
+        'social-media-posts': { name: 'Social Media Posts', icon: '💬', count: 0, totalSizeBytes: 0 }
       };
       
       // Load actual counts for each category
@@ -367,26 +369,40 @@ useEffect(() => {
     }
   };
 
-  // Handle tag changes with API call
-  const handleTagsChange = async (contentId, newTags) => {
+  // Handle tag changes with API call (now handles both regular tags and post_tags)
+
+  const handleTagsChange = async (contentId, newTags, newPostTags = null) => {
     setUpdatingTags(prev => new Set(prev).add(contentId));
     
     try {
-      console.log(`Updating tags for ${contentId}:`, newTags);
+      console.log(`Updating tags for ${contentId}:`, newTags, 'Post tags:', newPostTags);
       
-      // Real API call
-      await apiService.updateContentTags(contentId, newTags);
+      // Find current item to get existing post_tags if not provided
+      const currentItem = categoryContent.find(item => item.id === contentId) || 
+                         allContent.find(item => item.id === contentId);
       
-      // Update local state
-      setCategoryContent(prevContent => 
-        prevContent.map(item => 
-          item.id === contentId 
-            ? { ...item, tags: newTags }
-            : item
-        )
-      );
+      const postTagsToSave = newPostTags !== null ? newPostTags : (currentItem?.post_tags || []);
       
-      console.log('Tags updated successfully');
+      // Save both regular tags and post_tags
+      const promises = [apiService.updateContentTags(contentId, newTags)];
+      
+      // Only update post_tags if this is a social-media-posts item
+      if (currentItem?.category === 'social-media-posts') {
+        promises.push(apiService.updateContentPostTags(contentId, postTagsToSave));
+      }
+      
+      await Promise.all(promises);
+      
+      // Update local state for both category and all content
+      const updateFunction = (item) => 
+        item.id === contentId 
+          ? { ...item, tags: newTags, post_tags: postTagsToSave }
+          : item;
+      
+      setCategoryContent(prevContent => prevContent.map(updateFunction));
+      setAllContent(prevContent => prevContent.map(updateFunction));
+      
+      console.log('Tags and post_tags updated successfully');
       
     } catch (error) {
       console.error('Failed to update tags:', error);
@@ -399,6 +415,7 @@ useEffect(() => {
       });
     }
   };
+
 
   const handleContentAction = async (action, item) => {
     console.log(`${action} action on:`, item.title);
@@ -754,14 +771,6 @@ useEffect(() => {
     }
   }
 
-const debugUploadState = () => {
-  console.log('🐛 Upload Debug State:', {
-    uploading,
-    selectedCategory,
-    hasEventListeners: !!document.querySelector('[onDrop]'),
-    timestamp: new Date().toISOString()
-  });
-};
   const handleDownload = async (item) => {
     try {
       // Create file content
@@ -984,38 +993,23 @@ const debugUploadState = () => {
         <div className="col-span-9 bg-cream/95 overflow-y-auto library-scrollbar">
           {/* Content Header */}
                     <div className="sticky top-0 z-10 bg-cream/95 border-b border-brass/30 p-6 backdrop-blur-sm">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between w-full gap-4">
-              {/* Category Title and Count - Only in grid view */}
-              {viewMode === 'cards' && (
-                <div className="flex-shrink-0">
-                  <h2 className="text-xl lg:text-2xl font-cormorant text-library-dark">
-                    {searchQuery.trim() 
-                      ? `Search Results for "${searchQuery}"` 
-                      : categories[selectedCategory]?.name || 'Content'
-                    }
-                  </h2>
-                  <p className="text-wood-dark text-sm mt-1">
-                    {getDisplayContent().length} item{getDisplayContent().length !== 1 ? 's' : ''} found
-                  </p>
-                </div>
-              )}
-
-              {/* Summary Review Box - Moved to far left */}
-              <div className="flex-shrink-0">
+            <div className="flex flex-col lg:flex-row lg:items-center w-full gap-4">
+              {/* Key Themes Box - Fixed width, always on the left */}
+              <div className="flex-shrink-0" style={{ width: '473px' }}>
                 <div className="bg-white border-2 border-amber-800 rounded-lg p-3 lg:p-4 shadow-sm flex flex-col h-32 lg:h-40">
-                  <div className="text-wood-dark font-semibold text-xs lg:text-sm mb-2 text-center border-b border-amber-200 pb-1">
+                  <div className="text-wood-dark font-semibold text-xs lg:text-sm mb-2 text-left border-b border-amber-200 pb-1">
                     Key Themes
                   </div>
-                  <div className="text-wood-dark text-xs lg:text-sm leading-relaxed overflow-y-auto flex-1 flex items-center justify-center text-center">
+                  <div className="text-wood-dark text-xs lg:text-sm leading-relaxed overflow-y-auto flex-1 text-left">
                     {aiAnalysisLoading ? (
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-start gap-2">
                         <div className="animate-spin h-4 w-4 border-2 border-amber-600 border-t-transparent rounded-full"></div>
                         <div className="text-amber-700 text-xs">
                           The Librarian is fetching key themes... one moment
                         </div>
                       </div>
                     ) : aiAnalysisFailed ? (
-                      <div className="flex flex-col items-center gap-2 text-center">
+                      <div className="flex flex-col gap-2 text-left">
                         <div className="text-red-600 text-xs">
                           ⚠️ AI analysis failed after multiple attempts
                         </div>
@@ -1026,7 +1020,7 @@ const debugUploadState = () => {
                     ) : selectedContentForSummary?.key_themes?.length > 0 ? (
                         <div className="space-y-1">
                           {selectedContentForSummary.key_themes.map((theme, index) => (
-                            <div key={index} className="text-center">
+                            <div key={index} className="text-left">
                               • {theme}
                             </div>
                           ))}
@@ -1036,74 +1030,100 @@ const debugUploadState = () => {
                   </div>
                 </div>
               </div>
-              
-              {/* Multi-Tag Filter - 3 row stacked column */}
-              <div className="flex flex-col gap-1 mr-4">
-                {/* Header row */}
-                <div className="flex items-center gap-2 text-xs text-wood-dark/60">
-                  <span className="w-24">Filter Tags:</span>
-                  <span className="w-12 text-center">AND</span>
-                  <span className="w-12 text-center">OR</span>
-                </div>
-                
-                {/* 3 filter rows */}
-                {multiTagFilters.map((filter, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <select
-                      value={filter.tag}
-                      onChange={(e) => handleMultiTagChange(index, e.target.value)}
-                      className="text-xs bg-white border border-brass/30 rounded px-2 py-1 text-wood-dark focus:outline-none focus:border-brass w-24"
-                    >
-                      <option value="">-- Select --</option>
-                      {getAllAvailableTags().map(tag => (
-                        <option key={tag} value={tag}>{tag}</option>
-                      ))}
-                    </select>
-                    
-                    {/* AND radio button */}
-                    <div className="w-12 flex justify-center">
-                      <input
-                        type="radio"
-                        name={`operator-${index}`}
-                        value="AND"
-                        checked={filter.operator === 'AND'}
-                        onChange={(e) => handleMultiTagOperatorChange(index, e.target.value)}
-                        className="text-xs"
-                        disabled={!filter.tag}
-                      />
-                    </div>
-                    
-                    {/* OR radio button */}
-                    <div className="w-12 flex justify-center">
-                      <input
-                        type="radio"
-                        name={`operator-${index}`}
-                        value="OR"
-                        checked={filter.operator === 'OR'}
-                        onChange={(e) => handleMultiTagOperatorChange(index, e.target.value)}
-                        className="text-xs"
-                        disabled={!filter.tag}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0 lg:justify-end">
-                
-                {/* Sort controls */}
-                <div className="flex items-center gap-1 mr-2">
-                  <span className="text-xs text-wood-dark/60">Sort:</span>
-                  <select
-                    value={sortMode}
-                    onChange={(e) => setSortMode(e.target.value)}
-                    className="text-xs bg-white border border-brass/30 rounded px-2 py-1 text-wood-dark focus:outline-none focus:border-brass"
-                  >
-                    <option value="date">Date</option>
-                    <option value="title">Title</option>
-                    <option value="category">Category</option>
-                  </select>
+              {/* Category Title and Count - Moved to middle for grid view */}
+              {viewMode === 'cards' && (
+                <div className="flex-grow flex items-center justify-center">
+                  <div className="text-center">
+                    <h2 className="text-xl lg:text-2xl font-cormorant text-library-dark">
+                      {searchQuery.trim() 
+                        ? `Search Results for "${searchQuery}"` 
+                        : categories[selectedCategory]?.name || 'Content'
+                      }
+                    </h2>
+                    <p className="text-wood-dark text-sm mt-1">
+                      {getDisplayContent().length} item{getDisplayContent().length !== 1 ? 's' : ''} found
+                    </p>
+                  </div>
                 </div>
+              )}
+              
+              {/* Right side controls container - Sort, Multi-Tag Filter and View Controls */}
+              <div className="flex items-start gap-6 flex-shrink-0 ml-auto">
+                
+                {/* Sort and Multi-Tag Filter stacked column */}
+                <div className="flex flex-col">
+                  {/* Sort controls - above Filter Tags */}
+                  <div className="flex items-center gap-1 -mt-2 mb-1">
+                    <span className="text-xs text-wood-dark/60">Sort:</span>
+                    <select
+                      value={sortMode}
+                      onChange={(e) => setSortMode(e.target.value)}
+                      className="text-xs bg-white border border-brass/30 rounded px-2 py-1 text-wood-dark focus:outline-none focus:border-brass"
+                    >
+                      <option value="date">Date</option>
+                      <option value="title">Title</option>
+                      <option value="category">Category</option>
+                    </select>
+                  </div>
+                  
+                  {/* Separator line */}
+                  <div className="border-t border-brass/50 mb-2"></div>
+                  
+                  {/* Multi-Tag Filter - 3 row stacked column */}
+                  <div className="flex flex-col gap-1">
+                  {/* Header row */}
+                  <div className="flex items-center gap-2 text-xs text-wood-dark/60">
+                    <span className="w-24">Filter Tags:</span>
+                    <span className="w-12 text-center">AND</span>
+                    <span className="w-12 text-center">OR</span>
+                  </div>
+                  
+                  {/* 3 filter rows */}
+                  {multiTagFilters.map((filter, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <select
+                        value={filter.tag}
+                        onChange={(e) => handleMultiTagChange(index, e.target.value)}
+                        className="text-xs bg-white border border-brass/30 rounded px-2 py-1 text-wood-dark focus:outline-none focus:border-brass w-24"
+                      >
+                        <option value="">-- Select --</option>
+                        {getAllAvailableTags().map(tag => (
+                          <option key={tag} value={tag}>{tag}</option>
+                        ))}
+                      </select>
+                      
+                      {/* AND radio button */}
+                      <div className="w-12 flex justify-center">
+                        <input
+                          type="radio"
+                          name={`operator-${index}`}
+                          value="AND"
+                          checked={filter.operator === 'AND'}
+                          onChange={(e) => handleMultiTagOperatorChange(index, e.target.value)}
+                          className="text-xs"
+                          disabled={!filter.tag}
+                        />
+                      </div>
+                      
+                      {/* OR radio button */}
+                      <div className="w-12 flex justify-center">
+                        <input
+                          type="radio"
+                          name={`operator-${index}`}
+                          value="OR"
+                          checked={filter.operator === 'OR'}
+                          onChange={(e) => handleMultiTagOperatorChange(index, e.target.value)}
+                          className="text-xs"
+                          disabled={!filter.tag}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
                 
                 {/* View mode buttons */}
                 <button
@@ -1118,6 +1138,7 @@ const debugUploadState = () => {
                 >
                   <List size={18} />
                 </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1271,6 +1292,19 @@ const debugUploadState = () => {
                             <span className="text-xs bg-brass/20 text-wood-dark px-2 py-1 rounded-full">
                               {item.category || 'content'}
                             </span>
+                            {/* post_tags for social-media-posts only */}
+                            {item.category === 'social-media-posts' && (
+                              <TagBoxesPost 
+                                postTags={item.post_tags}
+                                contentId={item.id}
+                                onPostTagsChange={(contentId, newPostTags) => {
+                                  // Update local state immediately
+                                  const updateItem = (item) => item.id === contentId ? { ...item, post_tags: newPostTags } : item;
+                                  setAllContent(prevItems => prevItems.map(updateItem));
+                                  setCategoryContent(prevItems => prevItems.map(updateItem));
+                                }}
+                              />
+                            )}
                             {item.status === 'draft' && (
                               <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full">
                                 Draft
@@ -1308,6 +1342,7 @@ const debugUploadState = () => {
                         <div className="mb-3">
                           <TagBoxes 
                             tags={item.tags} 
+                            category={item.category}
                             compact={false} 
                             contentId={item.id}
                             onTagsChange={handleTagsChange}
@@ -1380,6 +1415,7 @@ const debugUploadState = () => {
                             {/* Replaced with compact TagBoxes */}
                             <TagBoxes 
                               tags={item.tags} 
+                              category={item.category}
                               compact={true}
                               contentId={item.id}
                               onTagsChange={handleTagsChange}
@@ -1465,6 +1501,7 @@ const debugUploadState = () => {
           </div>
         </div>
       )}
+
 
     </div>
   );

@@ -141,6 +141,7 @@ class StorageService:
                     ('word_count', 'word_count'),
                     ('passage', 'passage'),
                     ('tags', 'tags'),
+                    ('post_tags', 'post_tags'),
                     ('file_type', 'file_type'),
                     ('bible_references', 'bible_references'),
                     ('ai_processing_time_seconds', 'ai_processing_time_seconds'),
@@ -176,11 +177,11 @@ class StorageService:
                 await conn.execute("""
                     INSERT INTO content_items (
                         id, user_id, title, category, content, 
-                        word_count, passage, tags, file_type, bible_references,
+                        word_count, passage, tags, post_tags, file_type, bible_references,
                         ai_processing_time_seconds, key_themes, thought_questions,
                         last_error, size_bytes, processing_status
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                 """, content_id, user_id, 
                     content_data.get('title', 'Untitled'),
                     content_data.get('category', 'sermons'),
@@ -188,6 +189,7 @@ class StorageService:
                     content_data.get('word_count', 0),
                     content_data.get('passage'),
                     content_data.get('tags', []),
+                    content_data.get('post_tags', []),
                     content_data.get('file_type'),
                     content_data.get('bible_references', []),
                     content_data.get('ai_processing_time_seconds'),

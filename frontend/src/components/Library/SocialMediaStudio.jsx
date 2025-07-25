@@ -120,7 +120,7 @@ const SocialMediaStudio = () => {
   const handleMouseMove = useCallback((e) => {
     if (!isDragging) return;
     
-    const container = document.querySelector('.panel-container');
+    const container = document.querySelector('[data-resize-container]');
     if (!container) return;
     
     const rect = container.getBoundingClientRect();

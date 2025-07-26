@@ -1,333 +1,361 @@
 /**
- * Bible Service - Fixed for the actual JSON structure:
- * [
- *   {
- *     "abbrev": "gn",
- *     "chapters": [
- *       ["Verse text 1", "Verse text 2", ...]
- *     ]
- *   }
- * ]
+ * Bible Service - Updated for Backend API Integration
+ * Connects React frontend to backend Bible APIs with cache-first strategy.
+ * 
+ * Supports only 2 versions: NLT (contemporary) and KJV
+ * 
+ * This service:
+ * 1. Calls backend REST APIs instead of loading local JSON files
+ * 2. Maintains compatibility with existing React components
+ * 3. Handles loading states, errors, and compliance warnings
+ * 4. Supports the cache-first, API-fallback architecture
  */
 
 class BibleService {
   constructor() {
-    this.bibles = new Map();
-    this.loadedVersions = new Set();
-    this.loading = new Map();
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    this.cache = new Map(); // Local cache for navigation data, etc.
+    this.loadingPromises = new Map(); // Prevent duplicate requests
     
-    // Book name mapping from abbreviations
-    this.bookNames = {
-      'gn': 'Genesis',
-      'ex': 'Exodus', 
-      'lv': 'Leviticus',
-      'nm': 'Numbers',
-      'dt': 'Deuteronomy',
-      'jos': 'Joshua',
-      'jdg': 'Judges',
-      'ru': 'Ruth',
-      '1sm': '1 Samuel',
-      '2sm': '2 Samuel',
-      '1kg': '1 Kings',
-      '2kg': '2 Kings',
-      '1ch': '1 Chronicles',
-      '2ch': '2 Chronicles',
-      'ezr': 'Ezra',
-      'neh': 'Nehemiah',
-      'est': 'Esther',
-      'job': 'Job',
-      'ps': 'Psalms',
-      'pr': 'Proverbs',
-      'ec': 'Ecclesiastes',
-      'sg': 'Song of Solomon',
-      'is': 'Isaiah',
-      'jer': 'Jeremiah',
-      'lm': 'Lamentations',
-      'ezk': 'Ezekiel',
-      'dn': 'Daniel',
-      'ho': 'Hosea',
-      'jl': 'Joel',
-      'am': 'Amos',
-      'ob': 'Obadiah',
-      'jnh': 'Jonah',
-      'mc': 'Micah',
-      'na': 'Nahum',
-      'hb': 'Habakkuk',
-      'zep': 'Zephaniah',
-      'hg': 'Haggai',
-      'zec': 'Zechariah',
-      'mal': 'Malachi',
-      'mt': 'Matthew',
-      'mk': 'Mark',
-      'lk': 'Luke',
-      'jn': 'John',
-      'ac': 'Acts',
-      'ro': 'Romans',
-      '1co': '1 Corinthians',
-      '2co': '2 Corinthians',
-      'ga': 'Galatians',
-      'eph': 'Ephesians',
-      'php': 'Philippians',
-      'col': 'Colossians',
-      '1th': '1 Thessalonians',
-      '2th': '2 Thessalonians',
-      '1tm': '1 Timothy',
-      '2tm': '2 Timothy',
-      'tt': 'Titus',
-      'phm': 'Philemon',
-      'heb': 'Hebrews',
-      'jas': 'James',
-      '1pe': '1 Peter',
-      '2pe': '2 Peter',
-      '1jn': '1 John',
-      '2jn': '2 John',
-      '3jn': '3 John',
-      'jud': 'Jude',
-      'rv': 'Revelation'
-    };
+    // Only 2 supported versions as requested
+    this.availableVersions = [
+      { code: 'NLT', name: 'New Living Translation', abbreviation: 'NLT' },
+      { code: 'KJV', name: 'King James Version', abbreviation: 'KJV' }
+    ];
   }
 
   /**
-   * Load a Bible version on demand
+   * Handle API responses with proper error handling
+   * @private
    */
-  async loadVersion(version = 'kjv') {
-    const versionKey = version.toLowerCase();
+  async _handleResponse(response) {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+    }
     
-    if (this.loadedVersions.has(versionKey)) {
-      return this.bibles.get(versionKey);
-    }
+    return await response.json();
+  }
 
-    if (this.loading.has(versionKey)) {
-      return this.loading.get(versionKey);
-    }
-
-    const loadPromise = this._fetchBibleData(versionKey);
-    this.loading.set(versionKey, loadPromise);
+  /**
+   * Make authenticated API request
+   * @private
+   */
+  async _apiRequest(endpoint, options = {}) {
+    const url = `${this.baseURL}/api/bible${endpoint}`;
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    };
 
     try {
-      const bibleData = await loadPromise;
-      this.bibles.set(versionKey, bibleData);
-      this.loadedVersions.add(versionKey);
-      this.loading.delete(versionKey);
-      
-      console.log(`✅ Loaded Bible version: ${version.toUpperCase()}`);
-      console.log(`📊 Books loaded: ${bibleData.length}`);
-      return bibleData;
+      const response = await fetch(url, config);
+      return await this._handleResponse(response);
     } catch (error) {
-      this.loading.delete(versionKey);
-      console.error(`❌ Failed to load Bible version: ${version}`, error);
+      console.error(`❌ Bible API request failed: ${endpoint}`, error);
       throw error;
     }
   }
 
   /**
-   * Fetch Bible data from public folder
+   * Get a complete Bible chapter - MAIN METHOD
+   * This is the primary method that components will use
+   */
+  async getChapter(book, chapter, version = 'NLT') {
+    // Validate version
+    if (!['NLT', 'KJV'].includes(version)) {
+      throw new Error(`Unsupported Bible version: ${version}. Only NLT and KJV are supported.`);
+    }
+
+    const cacheKey = `chapter:${book}:${chapter}:${version}`;
+    
+    // Prevent duplicate requests
+    if (this.loadingPromises.has(cacheKey)) {
+      return await this.loadingPromises.get(cacheKey);
+    }
+
+    const promise = this._fetchChapter(book, chapter, version);
+    this.loadingPromises.set(cacheKey, promise);
+
+    try {
+      const result = await promise;
+      this.loadingPromises.delete(cacheKey);
+      return result;
+    } catch (error) {
+      this.loadingPromises.delete(cacheKey);
+      throw error;
+    }
+  }
+
+  /**
+   * Internal method to fetch chapter from backend
    * @private
    */
-  async _fetchBibleData(version) {
-    const response = await fetch(`/bibles/en_${version}.json`);
+  async _fetchChapter(book, chapter, version) {
+    console.log(`📖 Fetching ${book} ${chapter} (${version}) from backend...`);
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: Could not load Bible version ${version}`);
+    const response = await this._apiRequest(`/chapter/${encodeURIComponent(book)}/${chapter}?version=${version}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load Bible chapter');
     }
-    
-    return response.json();
-  }
 
-  /**
-   * Get a specific verse
-   */
-  async getVerse(book, chapter, verse, version = 'kjv') {
-    const bible = await this.loadVersion(version);
-    
-    const bookData = this._findBook(bible, book);
-    if (!bookData) {
-      throw new Error(`Book "${book}" not found in ${version.toUpperCase()}`);
+    // Log cache/storage info for learning
+    if (response.from_cache) {
+      console.log(`⚡ Cache hit: ${book} ${chapter} loaded instantly`);
+    } else {
+      console.log(`🌐 API call: ${book} ${chapter} fetched from NLT API ${response.stored ? '& stored' : ''}`);
     }
-    
-    const bookName = this._getBookName(bookData.abbrev);
-    
-    // Chapter is 1-based, but array is 0-based
-    const chapterIndex = chapter - 1;
-    if (!bookData.chapters[chapterIndex]) {
-      throw new Error(`${bookName} ${chapter} not found`);
+
+    if (response.compliance_warning) {
+      console.warn(`⚠️ Compliance warning: ${response.compliance_warning}`);
     }
-    
-    // Verse is 1-based, but array is 0-based
-    const verseIndex = verse - 1;
-    const verseText = bookData.chapters[chapterIndex][verseIndex];
-    if (!verseText) {
-      throw new Error(`${bookName} ${chapter}:${verse} not found`);
-    }
-    
+
+    // Transform backend response to match existing component expectations
     return {
-      reference: `${bookName} ${chapter}:${verse}`,
-      version: version.toUpperCase(),
-      text: verseText,
-      book: bookName,
-      chapter,
-      verse
+      book: response.book,
+      book_abbrev: response.book_abbrev,
+      chapter: response.chapter,
+      version: response.version,
+      // Transform verses array to match existing component format
+      verses: response.verses.map(verse => ({
+        reference: `${response.book} ${response.chapter}:${verse.number}`,
+        verse: verse.number,
+        number: verse.number, // Some components expect 'number'
+        text: verse.text
+      })),
+      // Additional metadata from backend
+      verse_count: response.verse_count,
+      from_cache: response.from_cache,
+      stored: response.stored,
+      compliance_warning: response.compliance_warning
     };
   }
 
   /**
-   * Get an entire chapter
+   * Get a specific verse from a chapter
    */
-  async getChapter(book, chapter, version = 'kjv') {
-    const bible = await this.loadVersion(version);
+  async getVerse(book, chapter, verse, version = 'NLT') {
+    const chapterData = await this.getChapter(book, chapter, version);
     
-    const bookData = this._findBook(bible, book);
-    if (!bookData) {
-      throw new Error(`Book "${book}" not found in ${version.toUpperCase()}`);
+    const verseData = chapterData.verses.find(v => v.verse === verse);
+    if (!verseData) {
+      throw new Error(`${book} ${chapter}:${verse} not found`);
     }
-    
-    const bookName = this._getBookName(bookData.abbrev);
-    
-    // Chapter is 1-based, but array is 0-based
-    const chapterIndex = chapter - 1;
-    const chapterVerses = bookData.chapters[chapterIndex];
-    if (!chapterVerses) {
-      throw new Error(`${bookName} ${chapter} not found`);
-    }
-    
+
     return {
-      book: bookName,
-      chapter,
-      version: version.toUpperCase(),
-      verses: chapterVerses.map((text, index) => ({
-        reference: `${bookName} ${chapter}:${index + 1}`,
-        verse: index + 1,
-        text: text
-      }))
+      reference: verseData.reference,
+      version: chapterData.version,
+      text: verseData.text,
+      book: chapterData.book,
+      chapter: chapterData.chapter,
+      verse: verse
     };
   }
 
   /**
-   * Search for verses containing specific text
+   * Search Bible text
    */
-  async searchText(query, version = 'kjv', limit = 50) {
+  async searchText(query, version = 'NLT', limit = 50) {
     if (!query || !query.trim()) {
       return [];
     }
 
-    const bible = await this.loadVersion(version);
-    const results = [];
-    const searchTerm = query.toLowerCase();
-    
-    for (const book of bible) {
-      const bookName = this._getBookName(book.abbrev);
-      
-      for (let chapterIndex = 0; chapterIndex < book.chapters.length; chapterIndex++) {
-        const chapter = book.chapters[chapterIndex];
-        const chapterNumber = chapterIndex + 1;
-        
-        for (let verseIndex = 0; verseIndex < chapter.length; verseIndex++) {
-          const verseText = chapter[verseIndex];
-          const verseNumber = verseIndex + 1;
-          
-          if (verseText.toLowerCase().includes(searchTerm)) {
-            results.push({
-              reference: `${bookName} ${chapterNumber}:${verseNumber}`,
-              book: bookName,
-              chapter: chapterNumber,
-              verse: verseNumber,
-              text: verseText,
-              version: version.toUpperCase()
-            });
-            
-            if (results.length >= limit) break;
-          }
-        }
-        if (results.length >= limit) break;
-      }
-      if (results.length >= limit) break;
+    // Validate version
+    if (!['NLT', 'KJV'].includes(version)) {
+      throw new Error(`Unsupported Bible version: ${version}. Only NLT and KJV are supported.`);
     }
-    
-    return results;
-  }
 
-  /**
-   * Get all books for navigation
-   */
-  async getBooks(version = 'kjv') {
-    const bible = await this.loadVersion(version);
-    return bible.map(book => ({
-      id: book.abbrev,
-      name: this._getBookName(book.abbrev),
-      chapters: book.chapters.length
+    console.log(`🔍 Searching for "${query}" in ${version}...`);
+    
+    const response = await this._apiRequest(`/search?q=${encodeURIComponent(query)}&version=${version}&limit=${limit}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Bible search failed');
+    }
+
+    // Log search info
+    if (response.searched_cached_only) {
+      console.log(`📚 Searched cached content only (${response.result_count} results)`);
+    } else {
+      console.log(`🌐 Full Bible search completed (${response.result_count} results)`);
+    }
+
+    // Transform backend response to match existing expectations
+    return response.results.map(result => ({
+      reference: result.reference,
+      book: result.book,
+      chapter: result.chapter,
+      verse: result.verse,
+      text: result.text,
+      version: result.version,
+      from_cache: result.from_cache
     }));
   }
 
   /**
-   * Get book name from abbreviation
-   * @private
+   * Get all books for navigation (cached)
    */
-  _getBookName(abbrev) {
-    return this.bookNames[abbrev.toLowerCase()] || abbrev.toUpperCase();
+  async getBooks(version = 'NLT') {
+    // Validate version
+    if (!['NLT', 'KJV'].includes(version)) {
+      throw new Error(`Unsupported Bible version: ${version}. Only NLT and KJV are supported.`);
+    }
+
+    const cacheKey = `navigation:${version}`;
+    
+    // Return cached navigation data if available
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    console.log(`📚 Loading Bible navigation data...`);
+    
+    const response = await this._apiRequest('/navigation');
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load Bible navigation');
+    }
+
+    // Combine and transform to match existing component expectations
+    const allBooks = [
+      ...response.old_testament,
+      ...response.new_testament
+    ].map(book => ({
+      id: book.abbrev,
+      abbrev: book.abbrev,
+      name: book.name,
+      chapters: book.total_chapters,
+      category: book.category,
+      color_code: book.color_code,
+      testament: book.id <= 39 ? 'OT' : 'NT'
+    }));
+
+    // Cache the result
+    this.cache.set(cacheKey, allBooks);
+    
+    console.log(`✅ Loaded ${allBooks.length} books for navigation`);
+    
+    return allBooks;
   }
 
   /**
-   * Find a book by name or abbreviation (case-insensitive)
-   * @private
+   * Get books organized by testament (for advanced navigation components)
    */
-  _findBook(bible, bookName) {
+  async getBooksOrganized(version = 'NLT') {
+    // Validate version
+    if (!['NLT', 'KJV'].includes(version)) {
+      throw new Error(`Unsupported Bible version: ${version}. Only NLT and KJV are supported.`);
+    }
+
+    const response = await this._apiRequest('/navigation');
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load Bible navigation');
+    }
+
+    return {
+      old_testament: response.old_testament,
+      new_testament: response.new_testament,
+      compliance: response.compliance
+    };
+  }
+
+  /**
+   * Get compliance status and usage statistics
+   */
+  async getComplianceStatus() {
+    const response = await this._apiRequest('/compliance');
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load compliance data');
+    }
+
+    return response.statistics;
+  }
+
+  /**
+   * Initialize Bible session (preload cached content)
+   */
+  async initializeSession(version = 'NLT') {
+    // Validate version
+    if (!['NLT', 'KJV'].includes(version)) {
+      throw new Error(`Unsupported Bible version: ${version}. Only NLT and KJV are supported.`);
+    }
+
+    console.log(`🚀 Initializing Bible session for ${version}...`);
+    
+    const response = await this._apiRequest('/initialize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ version })
+    });
+
+    if (!response.success) {
+      throw new Error('Failed to initialize Bible session');
+    }
+
+    console.log(`✅ Session initialized: ${response.cached_chapters} cached chapters, ${response.missing_chapters} to load`);
+    
+    return response;
+  }
+
+  /**
+   * Get available Bible versions (only NLT and KJV)
+   */
+  getAvailableVersions() {
+    return this.availableVersions;
+  }
+
+  /**
+   * Get random verse (using existing getVerse method)
+   */
+  async getRandomVerse(version = 'NLT') {
+    // Validate version
+    if (!['NLT', 'KJV'].includes(version)) {
+      version = 'NLT'; // Default to NLT if invalid
+    }
+
+    // For now, return a well-known verse
+    // In a real implementation, you could call a backend endpoint for this
+    return await this.getVerse('John', 3, 16, version);
+  }
+
+  /**
+   * Clear local caches
+   */
+  clearCache() {
+    this.cache.clear();
+    this.loadingPromises.clear();
+    console.log('🗑️ Bible service cache cleared');
+  }
+
+  /**
+   * Helper method to find book by name or abbreviation (for compatibility)
+   */
+  async findBook(bookName, version = 'NLT') {
+    const books = await this.getBooks(version);
     const searchName = bookName.toLowerCase().trim();
     
     // First try to find by abbreviation
-    let found = bible.find(book => 
+    let found = books.find(book => 
       book.abbrev && book.abbrev.toLowerCase() === searchName
     );
     
     if (found) return found;
     
     // Then try to find by full name
-    found = bible.find(book => {
-      const fullName = this._getBookName(book.abbrev);
-      return fullName.toLowerCase() === searchName ||
-             fullName.toLowerCase().startsWith(searchName);
+    found = books.find(book => {
+      return book.name.toLowerCase() === searchName ||
+             book.name.toLowerCase().startsWith(searchName);
     });
     
     return found;
-  }
-
-  /**
-   * Get available Bible versions
-   */
-  getAvailableVersions() {
-    return [
-      { code: 'kjv', name: 'King James Version', abbreviation: 'KJV' },
-      { code: 'bbe', name: 'Bible in Basic English', abbreviation: 'BBE' }
-    ];
-  }
-
-  /**
-   * Get random verse for inspiration
-   */
-  async getRandomVerse(version = 'kjv') {
-    const bible = await this.loadVersion(version);
-    
-    // Pick random book
-    const randomBook = bible[Math.floor(Math.random() * bible.length)];
-    const bookName = this._getBookName(randomBook.abbrev);
-    
-    // Pick random chapter
-    const randomChapterIndex = Math.floor(Math.random() * randomBook.chapters.length);
-    const randomChapter = randomBook.chapters[randomChapterIndex];
-    const chapterNumber = randomChapterIndex + 1;
-    
-    // Pick random verse
-    const randomVerseIndex = Math.floor(Math.random() * randomChapter.length);
-    const randomVerseText = randomChapter[randomVerseIndex];
-    const verseNumber = randomVerseIndex + 1;
-    
-    return {
-      reference: `${bookName} ${chapterNumber}:${verseNumber}`,
-      version: version.toUpperCase(),
-      text: randomVerseText,
-      book: bookName,
-      chapter: chapterNumber,
-      verse: verseNumber
-    };
   }
 }
 

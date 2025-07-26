@@ -22,10 +22,15 @@ services:
     depends_on:
       notes-db:
         condition: service_healthy
+      bible-cache-db:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://dev_user:dev_password@notes-db:5432/sermon_organizer_dev
+      - BIBLE_CACHE_DATABASE_URL=postgresql://bible_user:bible_password@bible-cache-db:5432/bible_content_cache
       - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - XAI_API_KEY=${XAI_API_KEY}
+      - NLT_API_KEY=${NLT_API_KEY}
+      - BIBLE_LICENSE_MODE=${BIBLE_LICENSE_MODE:-personal}
     volumes:
       - ./backend/log_prompts:/app/backend/log_prompts
     restart: unless-stopped
@@ -51,11 +56,33 @@ services:
     networks:
       - personal-notes-network
 
+  bible-cache-db:
+    image: postgres:15
+    restart: always
+    volumes:
+      - bible-cache-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=bible_content_cache
+      - POSTGRES_USER=bible_user
+      - POSTGRES_PASSWORD=bible_password
+    ports:
+      - 5434:5432
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "bible_user", "-d", "bible_content_cache"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - personal-notes-network
+
 
 volumes:
   notes-db-data:
     external: true
     name: personal-notes_notes-db-data
+  bible-cache-data:
+    external: true
+    name: personal-notes_bible-cache-data
 
 networks:
   personal-notes-network:

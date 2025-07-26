@@ -16,6 +16,7 @@ export default {
         'parchment': '#ede8d3',
         'wood-dark': '#654321',
         'wood-light': '#8B4513',
+        'dark-wood': '#2c1810',
       },
       fontFamily: {
         'crimson': ['Crimson Text', 'serif'],

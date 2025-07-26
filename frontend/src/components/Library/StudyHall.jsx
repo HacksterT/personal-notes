@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Search, 
   BookOpen, 
   MessageCircle, 
   Plus,
@@ -14,15 +13,13 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-// Import our Bible service, API service, and navigation
-import { bibleService } from '../../services/bibleService';
+// Import API service and navigation
 import { apiService } from '../../services/api';
 import NavigationMenu from './NavigationMenu';
 import TagBoxes from '../TagBoxes';
 
 const StudyHall = () => {
   const navigate = useNavigate();
-  const [selectedPassage, setSelectedPassage] = useState('John 3:16-21');
   const [studyNotes, setStudyNotes] = useState('');
   const [editorCategory, setEditorCategory] = useState('study-notes');
   const [isNewDocument, setIsNewDocument] = useState(true);
@@ -42,28 +39,21 @@ const StudyHall = () => {
   const [chatError, setChatError] = useState('');
   const [includeNoteContext, setIncludeNoteContext] = useState(true);
   
-  // Bible data state
-  const [bibleVerses, setBibleVerses] = useState([]);
-  const [currentVersion, setCurrentVersion] = useState('kjv');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
   // Resource injection state
   const [availableResources, setAvailableResources] = useState([]);
   const [selectedResources, setSelectedResources] = useState([]);
   const [resourceFilter, setResourceFilter] = useState('all');
   const [viewingResourceIndex, setViewingResourceIndex] = useState(null);
 
-  // Bible panel accordion state
+  // Panel accordion state
   const [isBiblePanelCollapsed, setIsBiblePanelCollapsed] = useState(false);
 
-  // Load John 3 by default when component mounts
+
+  // Load resources when component mounts
   useEffect(() => {
-    loadDefaultPassage();
     loadAvailableResources();
     loadActiveResourcesFromStorage();
-  }, [currentVersion]);
+  }, []);
 
   // Auto-scroll chat to bottom when messages change
   useEffect(() => {
@@ -213,30 +203,6 @@ const StudyHall = () => {
     }
   }, [resourceFilter]);
 
-  const loadDefaultPassage = async () => {
-    setLoading(true);
-    setError('');
-    
-    try {
-      console.log('📖 Loading John chapter 3...');
-      const chapterData = await bibleService.getChapter('John', 3, currentVersion);
-      
-      // Take first 6 verses for the demo
-      const displayVerses = chapterData.verses.slice(0, 6).map(v => ({
-        reference: v.reference,
-        version: chapterData.version,
-        text: v.text
-      }));
-      
-      setBibleVerses(displayVerses);
-      console.log('✅ Loaded verses:', displayVerses.length);
-    } catch (err) {
-      console.error('❌ Failed to load default passage:', err);
-      setError('Failed to load Bible passage. Please check that en_kjv.json is in public/bibles/');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadAvailableResources = async () => {
     try {
@@ -289,37 +255,6 @@ const StudyHall = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const handleBibleSearch = async (query) => {
-    if (!query.trim()) {
-      loadDefaultPassage();
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    
-    try {
-      console.log('🔍 Searching for:', query);
-      const results = await bibleService.searchText(query, currentVersion, 10);
-      
-      setBibleVerses(results);
-      console.log('✅ Found verses:', results.length);
-      
-      if (results.length === 0) {
-        setError(`No verses found containing "${query}"`);
-      }
-    } catch (err) {
-      console.error('❌ Search failed:', err);
-      setError('Search failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    handleBibleSearch(searchQuery);
-  };
 
   const mockChatMessages = [
     {
@@ -423,10 +358,6 @@ const StudyHall = () => {
     }
   };
 
-  const addVerseToNotes = (verse) => {
-    const verseText = `\n\n**${verse.reference} (${verse.version})**\n"${verse.text}"\n`;
-    setStudyNotes(prev => prev + verseText);
-  };
 
   // Insert text at cursor position in the study notes editor
   const insertTextAtCursor = (textToInsert) => {
@@ -977,12 +908,12 @@ const StudyHall = () => {
             isBiblePanelCollapsed ? 'justify-center p-2' : 'justify-between p-3'
           }`}>
             {!isBiblePanelCollapsed && (
-              <h3 className="text-lg font-cormorant text-brass-light">📖 Bible</h3>
+              <h3 className="text-lg font-cormorant text-brass-light">Resources</h3>
             )}
             <button
               onClick={handleBiblePanelToggle}
               className="p-1 rounded hover:bg-brass/20 transition-colors duration-200 text-brass-light hover:text-brass flex-shrink-0"
-              title={isBiblePanelCollapsed ? "Expand Bible Panel" : "Collapse Bible Panel"}
+              title={isBiblePanelCollapsed ? "Expand Panel" : "Collapse Panel"}
             >
               {isBiblePanelCollapsed ? (
                 <ChevronRight size={16} />
@@ -998,102 +929,19 @@ const StudyHall = () => {
               <div 
                 className="transform -rotate-90 text-brass-light text-sm font-medium whitespace-nowrap cursor-pointer hover:text-brass transition-colors duration-200"
                 onClick={handleBiblePanelToggle}
-                title="Expand Bible Panel"
+                title="Expand Panel"
               >
-                Bible
+                Resources
               </div>
             </div>
           ) : (
             <>
-              {/* Bible Search */}
-          <div className="p-4 border-b border-brass/20">
-            <form onSubmit={handleSearchSubmit}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brass-light" size={18} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search Bible passages..."
-                  className="library-input w-full pl-10"
-                />
-              </div>
-              <button 
-                type="submit" 
-                className="btn-primary w-full mt-2 text-sm"
-                disabled={loading}
-              >
-                {loading ? 'Searching...' : 'Search'}
-              </button>
-            </form>
-          </div>
-
-          {/* Bible Version Selector */}
-          <div className="p-4 border-b border-brass/20">
-            <select 
-              value={currentVersion}
-              onChange={(e) => setCurrentVersion(e.target.value)}
-              className="library-input w-full"
-            >
-              <option value="kjv">KJV - King James Version</option>
-              <option value="bbe">BBE - Bible in Basic English</option>
-            </select>
-          </div>
-
-          {/* Status Messages */}
-          {error && (
-            <div className="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Loading Indicator */}
-          {loading && (
-            <div className="p-4 flex items-center justify-center text-brass">
-              <Loader2 className="animate-spin mr-2" size={20} />
-              Loading Bible data...
-            </div>
-          )}
-
-          {/* Bible Verses */}
-          <div className="flex-1 overflow-y-auto library-scrollbar p-4 space-y-4">
-            {bibleVerses.map((verse, index) => (
-              <div
-                key={`${verse.reference}-${index}`}
-                className="verse-card group cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-cormorant font-semibold text-wood-dark text-lg">
-                    {verse.reference}
-                  </h3>
-                  <span className="text-xs bg-brass/20 text-wood-dark px-2 py-1 rounded">
-                    {verse.version}
-                  </span>
-                </div>
-                <p className="text-library-dark leading-relaxed italic group-hover:text-wood-dark transition-colors duration-300">
-                  "{verse.text}"
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <button 
-                    onClick={() => addVerseToNotes(verse)}
-                    className="text-xs bg-brass/10 hover:bg-brass/20 text-wood-dark px-2 py-1 rounded transition-colors duration-300"
-                  >
-                    Add to Notes
-                  </button>
-                  <button className="text-xs bg-brass/10 hover:bg-brass/20 text-wood-dark px-2 py-1 rounded transition-colors duration-300">
-                    Cross-Ref
-                  </button>
+              {/* Resources will be moved here */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center text-brass-light p-8">
+                  <p>Resources will be moved here</p>
                 </div>
               </div>
-            ))}
-
-            {!loading && bibleVerses.length === 0 && !error && (
-              <div className="text-center text-brass-light p-8">
-                <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
-                <p>Search for verses or browse by reference</p>
-              </div>
-            )}
-          </div>
             </>
           )}
         </div>
@@ -1365,7 +1213,7 @@ const StudyHall = () => {
                         ? `Title: Your Study Title Here\n\nMain Scripture Reference: [Book Chapter:Verse]\n\n--- Study Notes ---\n\nKey theological concepts:\n• \n• \n• \n\nCross-references:\n• \n• \n\nPersonal insights:\n\n\nQuestions for further study:\n1. \n2. \n\nPractical applications:\n•` 
                         : `Title: Your Journal Entry Title\n\nDate: ${new Date().toLocaleDateString()}\nScripture Reference: [Optional]\n\n--- Personal Reflection ---\n\nWhat is God teaching me?\n\n\nHow do I feel about this?\n\n\nWhat am I struggling with?\n\n\nPrayers and gratitude:\n\n\nNext steps:`
                       : editorCategory === 'study-notes'
-                        ? "Continue your study notes... (Click 'Add to Notes' on verses to insert them)"
+                        ? "Continue your study notes..."
                         : "Continue your journal entry..."
                   }
                   className="w-full h-64 p-4 border border-brass/20 rounded-lg resize-none focus:outline-none focus:border-brass text-library-dark leading-relaxed"

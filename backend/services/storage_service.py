@@ -1,7 +1,66 @@
 # backend/services/storage_service.py
 """
-Simple storage service to start with
-We'll build this up slowly
+StorageService - Primary PostgreSQL Database Service for Sermon Organizer
+
+OVERVIEW:
+Main database service that handles all persistent data storage for the sermon organizer application.
+Manages user-generated content (sermons, study notes, research, journals, social media posts),
+user profiles, AI processing results, and system metadata through a comprehensive database schema.
+
+CORE FUNCTIONALITY:
+1. Content Management:
+   - Store/retrieve user content with 17-field schema including AI analysis results
+   - Full CRUD operations (Create, Read, Update, Delete) for all content types
+   - Category-based organization (sermons, study-notes, research, journal, social-media-posts)
+   - Full-text search across titles and content
+   - Bulk import/export capabilities for data migration
+
+2. AI Processing Integration:
+   - Tracks AI analysis metadata (key_themes, thought_questions, processing_time)
+   - Stores Bible references extracted from content
+   - Processing status tracking (pending, completed, error states)
+   - Error logging for failed AI operations
+
+3. User Profile Management:
+   - Complete user profile storage with ministry-focused fields
+   - Lookup tables for roles, theological profiles, speaking styles, education levels
+   - Profile creation, updates, and deletion with referential integrity
+
+DATABASE SCHEMA:
+- content_items: Main content storage (UUID-based, supports versioning)
+  * Core fields: id, user_id, title, category, content, dates
+  * Metadata: word_count, file_type, size_bytes, processing_status
+  * AI analysis: key_themes, thought_questions, ai_processing_time_seconds
+  * References: bible_references, passage, tags, post_tags
+  
+- user_profiles: User information and ministry preferences
+  * Personal: full_name, profile_picture_url, year_started_ministry
+  * Ministry: church_affiliation, favorite_preacher, audience_description
+  * Preferences: bible_versions, theological_profile, speaking_style, education_level
+  
+- Lookup Tables: roles, theological_profiles, speaking_styles, education_levels
+  * Pre-populated with common ministry options
+  * Referenced by user_profiles for normalization
+
+TECHNICAL FEATURES:
+- Async/await pattern with asyncpg for high-performance PostgreSQL operations
+- Connection pooling for efficient database resource management
+- Automatic table creation and migration on startup
+- Comprehensive error handling and logging
+- UUID-based content IDs for scalability and security
+- Partial update support (only updates provided fields)
+- Storage usage analytics and reporting
+
+USAGE PATTERNS:
+- Called by API routes in backend/api/ for all database operations
+- Integrated with AI services for storing analysis results
+- Used by frontend components via REST API endpoints
+- Supports both single-user and multi-user architectures
+
+DEPENDENCIES:
+- asyncpg: PostgreSQL async driver
+- PostgreSQL database with UUID generation support
+- Logging configuration for operation tracking
 """
 
 import asyncio

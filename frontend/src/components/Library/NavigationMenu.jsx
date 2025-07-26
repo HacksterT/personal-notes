@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Book, Archive, Edit, Share2, ArrowLeft, Settings } from 'lucide-react';
+import { Book, Archive, Edit, Share2, BookOpen, ArrowLeft, Settings } from 'lucide-react';
 
 const NavigationMenu = () => {
   const navigate = useNavigate();
@@ -13,11 +13,6 @@ const NavigationMenu = () => {
       path: "/study",
     },
     {
-      icon: Archive,
-      title: "Library Stacks", 
-      path: "/stacks",
-    },
-    {
       icon: Edit,
       title: "Sermon Workshop",
       path: "/workshop",
@@ -26,6 +21,16 @@ const NavigationMenu = () => {
       icon: Share2,
       title: "Social Media",
       path: "/social",
+    },
+    {
+      icon: Archive,
+      title: "Library Stacks", 
+      path: "/stacks",
+    },
+    {
+      icon: BookOpen,
+      title: "Bible Room",
+      path: "/bible",
     }
   ];
 
@@ -47,7 +52,7 @@ const NavigationMenu = () => {
       {/* Quick Navigation Menu */}
       <div className="flex items-center gap-2">
         <span className="text-brass-light text-sm font-cormorant">Quick Nav:</span>
-        {doors.map((door, index) => {
+        {doors.map((door) => {
           const isActive = currentPath === door.path;
           const IconComponent = door.icon;
           

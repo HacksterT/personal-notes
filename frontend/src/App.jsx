@@ -9,7 +9,8 @@ import StudyHall from './components/Library/StudyHall';
 import LibraryStacks from './components/Library/LibraryStacks';
 import SermonGenerator from './components/SermonGenerator';
 import SocialMediaStudio from './components/Library/SocialMediaStudio';
-import SettingsPage from './components/SettingsPage'; // Import the new settings page
+import BibleReader from './components/Bible/BibleReader';
+import SettingsPage from './components/SettingsPage';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -30,11 +31,13 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/entrance" element={<LibraryEntrance />} />
+            <Route path="/library" element={<LibraryEntrance />} />
             <Route path="/study" element={<StudyHall />} />
             <Route path="/stacks" element={<LibraryStacks />} />
             <Route path="/workshop" element={<SermonGenerator />} />
             <Route path="/social" element={<SocialMediaStudio />} />
-            <Route path="/settings" element={<SettingsPage />} /> {/* Add the new settings route */}
+            <Route path="/bible" element={<BibleReader />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>
       </Router>

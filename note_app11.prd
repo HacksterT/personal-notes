@@ -1,0 +1,232 @@
+# StudyHall Layout Redesign - note_app11.prd
+
+## Project Goal
+Redesign the StudyHall layout to remove the left Bible column and reorganize resources to optimize the chat interface for full-width usage.
+
+## Current StudyHall Layout Analysis
+
+### Current 3-Column Layout
+```
+┌─────────────┬─────────────────────────┬─────────────┐
+│   Bible     │    Editor Content       │ Resources   │
+│   Panel     │    (Study Notes)        │   Panel     │
+│             │                         │             │
+│ - Versions  │ - Text Editor           │ - Active    │
+│ - Search    │ - Category Select       │   Resources │
+│ - Verses    │ - Save/Load             │ - Library   │
+│             │                         │   Resources │
+│             │                         │ - Chat      │
+│             │                         │   (cramped) │
+└─────────────┴─────────────────────────┴─────────────┘
+```
+
+### Issues with Current Layout
+- **Bible Panel Redundancy**: Full Bible interface now exists in dedicated Bible Room
+- **Chat Interface Cramped**: Limited to narrow right column space
+- **Resource Management Split**: Resources divided into two sections vertically
+- **Inefficient Space Usage**: Bible panel takes up valuable screen real estate
+
+## Proposed New Layout
+
+### Improved 3-Column Layout
+```
+┌─────────────┬─────────────────────────┬─────────────┐
+│ Resources   │    Editor Content       │    Chat     │
+│   Panel     │    (Study Notes)        │  Interface  │
+│             │                         │             │
+│ - Bible     │ - Text Editor           │ - Chat      │
+│   (removed) │ - Category Select       │   History   │
+│ - Active    │ - Save/Load             │ - Input     │
+│   Resources │                         │   Field     │
+│ - Library   │                         │ - Context   │
+│   Resources │                         │   Controls  │
+│             │                         │ - Settings  │
+└─────────────┴─────────────────────────┴─────────────┘
+```
+
+### Layout Benefits
+- **Dedicated Bible Access**: Users can open Bible Room in separate tab/window for reference
+- **Enhanced Chat Experience**: Full dedicated column for librarian chat interface
+- **Consolidated Resources**: All resource management in single left panel (Bible space reclaimed)
+- **Maintained 3-Column Structure**: Familiar layout with optimized space allocation
+- **Improved Chat Usability**: No longer sharing column space with resources
+
+## Implementation Plan
+
+### Phase 1: Remove Bible Panel (Priority: HIGH) ✅ COMPLETED
+- [x] Remove Bible-related state variables from StudyHall component
+- [x] Remove Bible panel JSX structure and related UI elements  
+- [x] Remove Bible service integration and loading logic
+- [x] Keep 3-column grid layout structure and accordion functionality
+- [x] Clean up unused imports and dependencies
+- [x] Preserve panel collapse/expand functionality for future resource content
+
+### Phase 2: Move Resources to Left Panel (Priority: HIGH)
+- [ ] Move Active Resources section from right panel to left panel (below where Bible was)
+- [ ] Move Library Resources section from right panel to left panel (below Active Resources)
+- [ ] Adjust spacing and layout for consolidated resource management in left column
+- [ ] Ensure resource selection and management functionality remains intact
+- [ ] Update styling for better vertical organization in left panel
+
+### Phase 3: Expand Chat to Full Right Column (Priority: HIGH)
+- [ ] Remove Active Resources and Library Resources from right panel
+- [ ] Expand chat interface to occupy entire right column (full height)
+- [ ] Improve chat history display with dedicated column space
+- [ ] Enhance chat input area with full column width
+- [ ] Optimize chat styling for dedicated column layout
+- [ ] Maintain middle column (editor) unchanged
+
+### Phase 4: Layout Optimization (Priority: MEDIUM)
+- [ ] Adjust responsive breakpoints for optimized 3-column layout
+- [ ] Optimize spacing and proportions between all three panels
+- [ ] Ensure proper scrolling behavior in all panels
+- [ ] Update mobile layout for new resource organization
+- [ ] Test layout on different screen sizes
+
+## Technical Implementation Details
+
+### Current Grid Structure
+```css
+/* Current 3-column grid */
+.grid.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+/* Bible Panel: col-span-3, Editor: col-span-6, Resources+Chat: col-span-3 */
+```
+
+### New Grid Structure (target)
+```css
+/* Optimized 3-column grid */
+.grid.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+/* Left Resources: col-span-3, Editor: col-span-6, Chat: col-span-3 */
+```
+
+### Component Structure Changes
+
+#### Remove from StudyHall.jsx:
+- `bibleVerses` state
+- `currentVersion` state (Bible version)
+- `searchQuery` state (Bible search)
+- `loadDefaultPassage()` function
+- Bible panel JSX structure
+- Bible service imports
+
+#### Modify in StudyHall.jsx:
+- Grid layout classes
+- Resource panel positioning
+- Chat interface structure and styling
+- Overall component organization
+
+### File Changes Required
+
+#### Primary Changes:
+- `frontend/src/components/Library/StudyHall.jsx` - Main layout restructure
+
+#### Potential Secondary Changes:
+- Update any StudyHall-specific styling if needed
+- Adjust responsive breakpoints in CSS if needed
+
+## User Experience Improvements
+
+### Chat Interface Enhancements
+- **Full-Width Conversations**: Chat no longer constrained to narrow column
+- **Better Message Display**: More space for formatting chat history
+- **Improved Input Experience**: Larger text input area for longer messages
+- **Enhanced Context Display**: Better space utilization for showing included resources
+
+### Resource Management Improvements
+- **Consolidated Access**: All resources in single, dedicated panel
+- **Clearer Organization**: Active and Library resources clearly separated vertically
+- **Easier Navigation**: No need to scroll between different resource sections
+
+### Workflow Optimization
+- **Bible Reference Flow**: Users open Bible Room when needed (dedicated interface)
+- **Focused Editing**: More space dedicated to actual content creation
+- **Seamless Chat Integration**: Natural flow between editing and AI assistance
+
+## Responsive Design Considerations
+
+### Desktop (>1024px)
+- Resources Panel: ~25% width (col-span-3)
+- Editor+Chat Panel: ~75% width (col-span-9)
+
+### Tablet (768px-1024px)
+- Consider stacking panels vertically or using drawer/toggle system
+- Maintain usability for both resource access and chat functionality
+
+### Mobile (<768px)
+- Full-width single column with tabbed interface
+- Tabs: Editor | Resources | Chat
+- Maintain all functionality while optimizing for touch interaction
+
+## Success Criteria
+
+### Functional Requirements
+- [ ] Bible panel completely removed without breaking existing functionality
+- [ ] All resource management features working in new left panel position
+- [ ] Chat interface fully expanded with improved usability
+- [ ] No regressions in save/load, editing, or AI chat functionality
+
+### UI/UX Requirements
+- [ ] Clean 2-column layout with proper spacing and proportions
+- [ ] Responsive design working across all target screen sizes
+- [ ] Consistent styling with overall library theme
+- [ ] Improved chat experience with full-width interface
+
+### Performance Requirements
+- [ ] No performance regressions from layout changes
+- [ ] Proper cleanup of unused Bible-related code and imports
+- [ ] Maintained fast loading and interaction speeds
+
+## Migration Path
+
+### Development Approach
+1. **Incremental Changes**: Make changes in phases to avoid breaking functionality
+2. **Component Isolation**: Test each phase independently before proceeding
+3. **Backup Strategy**: Maintain working version throughout development
+4. **User Testing**: Validate improved chat experience after implementation
+
+### Testing Strategy
+- Test resource management functionality in new position
+- Verify chat interface improvements with full-width layout
+- Validate responsive behavior across device sizes
+- Ensure no Bible panel dependencies remain
+
+---
+
+## 📝 DEVELOPMENT STATUS
+
+### ✅ COMPLETED WORK (Phase 1)
+**Bible Panel Removal**: Successfully removed all Bible-related functionality while preserving the accordion structure.
+
+**Key Accomplishments:**
+- Removed Bible-related state variables (`bibleVerses`, `currentVersion`, `searchQuery`, `loading`, `error`)
+- Cleaned up Bible service integration and all related functions
+- Removed Bible UI elements (search, version selector, verse cards, "Add to Notes" functionality)
+- Updated panel title from "📖 Bible" to "Resources"
+- Preserved `isBiblePanelCollapsed` state and `handleBiblePanelToggle` function
+- Left placeholder space ready for resource content migration
+- Cleaned up unused imports and references
+
+**Technical Notes:**
+- Fixed runtime error by ensuring accordion state variables remain intact
+- Left column now shows "Resources will be moved here" placeholder
+- Accordion functionality fully preserved for next phase
+- No regressions in editor or chat functionality
+
+### 🎯 NEXT SESSION PRIORITIES
+1. **Phase 2**: Move Active Resources from right panel to left panel
+2. **Phase 3**: Move Library Resources from right panel to left panel  
+3. **Phase 4**: Expand chat interface to occupy full right column
+
+**Status**: Foundation complete, ready for resource migration work.
+
+---
+
+**Development Notes:**
+- Bible functionality moved to dedicated Bible Room (accessible via navigation)
+- Focus on optimizing StudyHall for content creation and AI assistance workflow
+- Improved space utilization for primary StudyHall functions
+- Enhanced chat interface for better user interaction experience

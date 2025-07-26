@@ -177,3 +177,6 @@ models/
 # Generated content directories (regenerated from database)
 /frontend/public/storage/
 /frontend/public/bibles/
+
+# Development notes with sensitive API information
+note_app10.prd

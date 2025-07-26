@@ -31,15 +31,15 @@
    =================================== */
 
 @layer components {
-  /* Simplified Library Door */
-  .library-door {
-    @apply w-52 h-80 bg-gradient-to-b from-amber-900 to-amber-800
+  /* Library Door - Square Format */
+  .library-door-square {
+    @apply w-44 h-44 bg-gradient-to-b from-amber-900 to-amber-800
            border-2 border-yellow-600 rounded-lg cursor-pointer
            flex flex-col items-center justify-center
            shadow-lg transition-colors duration-300;
   }
   
-  .library-door:hover {
+  .library-door-square:hover {
     @apply from-amber-800 to-amber-700 border-yellow-500;
   }
   
@@ -139,6 +139,134 @@
   
   .chat-input::placeholder {
     @apply text-gray-500;
+  }
+  
+  /* Bible Reader Component Styles */
+  .bible-reader-content {
+    background: linear-gradient(135deg, #2c1810 0%, #4a3429 50%, #2c1810 100%);
+  }
+  
+  .bible-reader-content-dark {
+    @apply bg-gray-800;
+  }
+  
+  /* Bible Navigation Sidebar */
+  .bible-nav-sidebar {
+    background: rgba(44, 24, 16, 0.8);
+    @apply border-r border-brass/20;
+  }
+  
+  .bible-nav-sidebar-dark {
+    @apply bg-gray-900 border-r border-gray-600;
+  }
+  
+  /* Bible Headers */
+  .bible-header {
+    background: rgba(44, 24, 16, 0.4);
+    @apply border-b border-brass/20;
+  }
+  
+  .bible-header-dark {
+    @apply bg-gray-900 border-b border-gray-600;
+  }
+  
+  /* Bible Input Fields */
+  .bible-input {
+    @apply bg-dark-wood border border-brass/30 text-cream placeholder-brass-light/60;
+    @apply focus:outline-none focus:border-brass;
+  }
+  
+  .bible-input-dark {
+    @apply bg-gray-700 border-gray-500 text-white placeholder-gray-400;
+    @apply focus:border-blue-400;
+  }
+  
+  /* Bible Buttons */
+  .bible-btn-primary {
+    @apply bg-brass text-dark-wood font-medium hover:bg-brass-light transition-colors;
+  }
+  
+  .bible-btn-primary-dark {
+    @apply bg-blue-600 text-white hover:bg-blue-700 transition-colors;
+  }
+  
+  .bible-btn-secondary {
+    @apply bg-brass/20 border border-brass/30 text-brass hover:bg-brass/30 transition-colors;
+  }
+  
+  .bible-btn-secondary-dark {
+    @apply bg-gray-700 border-gray-500 text-gray-200 hover:bg-gray-600 transition-colors;
+  }
+  
+  /* Bible Cards/Results */
+  .bible-card {
+    background: rgba(44, 24, 16, 0.3);
+    @apply border border-brass/20 text-cream hover:bg-brass/5 transition-colors;
+  }
+  
+  .bible-card-dark {
+    @apply bg-gray-800 border-gray-600 text-gray-100 hover:bg-gray-700 transition-colors;
+  }
+  
+  /* Bible Tools */
+  .bible-tool-bar {
+    @apply bg-brass/20 border border-brass/30;
+  }
+  
+  .bible-tool-bar-dark {
+    @apply bg-gray-700 border-gray-500;
+  }
+  
+  /* Version Selector */
+  .bible-version-selector-btn {
+    @apply bg-dark-wood border border-brass/30 hover:bg-brass/10 transition-colors;
+  }
+  
+  .bible-version-selector-btn-dark {
+    @apply bg-gray-700 border-gray-500 hover:bg-gray-600 transition-colors;
+  }
+  
+  .bible-version-dropdown {
+    @apply bg-dark-wood border border-brass/30;
+  }
+  
+  .bible-version-dropdown-dark {
+    @apply bg-gray-800 border-gray-600;
+  }
+  
+  .bible-version-option {
+    @apply hover:bg-brass/10 transition-colors;
+  }
+  
+  .bible-version-option-dark {
+    @apply hover:bg-gray-700 transition-colors;
+  }
+  
+  /* Search Interface */
+  .bible-search-header {
+    @apply bg-dark-wood/40 border-b border-brass/20;
+  }
+  
+  .bible-search-header-dark {
+    @apply bg-gray-900/40 border-b border-gray-600;
+  }
+  
+  .bible-search-input {
+    @apply bg-dark-wood border border-brass/30 text-cream placeholder-brass-light/60;
+    @apply focus:outline-none focus:border-brass;
+  }
+  
+  .bible-search-input-dark {
+    @apply bg-gray-700 border-gray-500 text-white placeholder-gray-400;
+    @apply focus:border-blue-400;
+  }
+  
+  .bible-search-result {
+    @apply bg-dark-wood/30 border border-brass/20 hover:bg-brass/5 transition-colors;
+  }
+  
+  .bible-search-result-dark {
+    @apply bg-gray-800/30 border-gray-600 hover:bg-gray-700/50 transition-colors;
   }
 }
 

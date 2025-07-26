@@ -1,28 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Book, Archive, Edit, Share2, Settings } from 'lucide-react';
+import { Book, Archive, Edit, Share2, BookOpen, Settings } from 'lucide-react';
 
 const LibraryEntrance = () => {
   const navigate = useNavigate();
   const [selectedDoor, setSelectedDoor] = useState(null);
 
-  const doors = [
+  const topRowDoors = [
     {
       icon: Book,
       title: "Study Hall",
       description: "Bible Research & Notes",
       path: "/study",
     },
-  
-    {
-      icon: Archive,
-      title: "Library Stacks", 
-      description: "Content Storage & Retrieval",
-      path: "/stacks",
-    },
     {
       icon: Edit,
-      title: "Sermon Workshop",
+      title: "Sermon Generator",
       description: "Sermon Creation & Editing", 
       path: "/workshop",
     },
@@ -34,8 +27,24 @@ const LibraryEntrance = () => {
     }
   ];
 
-  const handleDoorClick = (door, index) => {
-    setSelectedDoor(index);
+  const bottomRowDoors = [
+    {
+      icon: Archive,
+      title: "Library Stacks", 
+      description: "Content Storage & Retrieval",
+      path: "/stacks",
+    },
+    {
+      icon: BookOpen,
+      title: "Bible Room",
+      description: "Bible Reading & Study", 
+      path: "/bible",
+    }
+  ];
+
+  const handleDoorClick = (door, index, isBottomRow = false) => {
+    const doorIndex = isBottomRow ? `bottom-${index}` : `top-${index}`;
+    setSelectedDoor(doorIndex);
     // Simple navigation without complex animations
     navigate(door.path);
   };
@@ -66,33 +75,88 @@ const LibraryEntrance = () => {
       </div>
 
       {/* Library Doors */}
-      <div className="grid grid-cols-2 gap-8 mb-12 max-w-4xl">
-        {doors.map((door, index) => (
+      <div className="mb-12 max-w-5xl">
+        {/* Top Row - 3 columns */}
+        <div className="grid grid-cols-3 gap-6 mb-6">
+          {topRowDoors.map((door, index) => (
+            <div
+              key={door.path}
+              className={`library-door-square relative group ${
+                selectedDoor === `top-${index}` ? 'ring-2 ring-brass' : ''
+              }`}
+              onClick={() => handleDoorClick(door, index, false)}
+            >
+              {/* Door Content */}
+              <div className="flex flex-col items-center justify-center h-full">
+                {/* Icon */}
+                <door.icon className="text-4xl text-brass mb-3 group-hover:text-brass-light" />
+                
+                {/* Title */}
+                <h3 className="text-base font-medium text-brass-light mb-2 text-center">
+                  {door.title}
+                </h3>
+                
+                {/* Description */}
+                <p className="text-xs text-brass italic text-center opacity-80">
+                  {door.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom Row - 2 columns positioned */}
+        <div className="grid grid-cols-3 gap-6">
+          {/* Library Stacks - positioned under left side */}
           <div
-            key={door.path}
-            className={`library-door relative group ${
-              selectedDoor === index ? 'ring-2 ring-brass' : ''
+            key={bottomRowDoors[0].path}
+            className={`library-door-square relative group ${
+              selectedDoor === `bottom-0` ? 'ring-2 ring-brass' : ''
             }`}
-            onClick={() => handleDoorClick(door, index)}
+            onClick={() => handleDoorClick(bottomRowDoors[0], 0, true)}
           >
             {/* Door Content */}
             <div className="flex flex-col items-center justify-center h-full">
               {/* Icon */}
-              <door.icon className="text-5xl text-brass mb-4 group-hover:text-brass-light" />
+              {React.createElement(bottomRowDoors[0].icon, { className: "text-4xl text-brass mb-3 group-hover:text-brass-light" })}
               
               {/* Title */}
-              <h3 className="text-lg font-medium text-brass-light mb-2 text-center">
-                {door.title}
+              <h3 className="text-base font-medium text-brass-light mb-2 text-center">
+                {bottomRowDoors[0].title}
               </h3>
               
               {/* Description */}
-              <p className="text-sm text-brass italic text-center opacity-80">
-                {door.description}
+              <p className="text-xs text-brass italic text-center opacity-80">
+                {bottomRowDoors[0].description}
               </p>
             </div>
-
           </div>
-        ))}
+          
+          {/* Bible Room - positioned under right side, spans 2 columns */}
+          <div
+            key={bottomRowDoors[1].path}
+            className={`library-door-square relative group col-span-2 ${
+              selectedDoor === `bottom-1` ? 'ring-2 ring-brass' : ''
+            }`}
+            onClick={() => handleDoorClick(bottomRowDoors[1], 1, true)}
+          >
+            {/* Door Content */}
+            <div className="flex flex-col items-center justify-center h-full">
+              {/* Icon */}
+              {React.createElement(bottomRowDoors[1].icon, { className: "text-4xl text-brass mb-3 group-hover:text-brass-light" })}
+              
+              {/* Title */}
+              <h3 className="text-base font-medium text-brass-light mb-2 text-center">
+                {bottomRowDoors[1].title}
+              </h3>
+              
+              {/* Description */}
+              <p className="text-xs text-brass italic text-center opacity-80">
+                {bottomRowDoors[1].description}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Instructions */}
@@ -101,11 +165,12 @@ const LibraryEntrance = () => {
           Choose your study space to begin
         </p>
 
-        <div className="flex items-center justify-center gap-6 text-sm text-brass-light/60">
+        <div className="flex items-center justify-center gap-4 text-sm text-brass-light/60">
           <span>📚 Research</span>
-          <span>🗃️ Storage</span>
           <span>✍️ Creation</span>
           <span>📱 Publishing</span>
+          <span>🗃️ Storage</span>
+          <span>📖 Reading</span>
         </div>
       </div>
     </div>

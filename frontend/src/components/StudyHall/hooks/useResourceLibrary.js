@@ -85,8 +85,12 @@ export const useResourceLibrary = () => {
         }
       }
       
-      // Sort by most recent first
-      allResources.sort((a, b) => new Date(b.date_modified || b.date_created) - new Date(a.date_modified || a.date_created));
+      // Sort by most recent first, handling potential null dates
+      allResources.sort((a, b) => {
+        const dateA = new Date(a.date_modified || a.date_created || 0);
+        const dateB = new Date(b.date_modified || b.date_created || 0);
+        return dateB - dateA;
+      });
       
       setAvailableResources(allResources);
       console.log(`✅ Loaded ${allResources.length} resources from library`);

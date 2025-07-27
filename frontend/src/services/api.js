@@ -118,7 +118,9 @@ class APIService {
       url += `&category=${encodeURIComponent(category)}`;
     }
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: this.getAuthHeaders(),
+    });
 
     return await this.handleResponse(response);
   }

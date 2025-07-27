@@ -173,6 +173,7 @@ models/
 /archive
 /project_documentation
 /scripts
+/tasks
 
 # Generated content directories (regenerated from database)
 /frontend/public/storage/

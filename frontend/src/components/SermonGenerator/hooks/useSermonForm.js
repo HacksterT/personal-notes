@@ -143,12 +143,10 @@ Discussion questions for small groups:
         localStorage.removeItem('editingSermon');
         
         console.log('✅ Editing sermon loaded');
-        return sermon;
       }
     } catch (error) {
       console.error('Failed to load editing sermon:', error);
     }
-    return null;
   };
 
   // Load session data from localStorage
@@ -195,8 +193,7 @@ Discussion questions for small groups:
   useEffect(() => {
     loadSessionData();
     loadCuratedContent();
-    const editingSermon = loadEditingSermon();
-    return editingSermon;
+    loadEditingSermon();
   }, []);
 
   // Clear form data

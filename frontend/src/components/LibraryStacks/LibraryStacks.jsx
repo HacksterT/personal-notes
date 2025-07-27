@@ -287,7 +287,7 @@ const LibraryStacks = () => {
         onDragOver={uploadHook.handleDragOver}
         onDrop={(e) => uploadHook.handleDrop(e, contentHook.selectedCategory, handleUploadSuccess)}
         uploading={uploadHook.uploading}
-        createFileInput={() => uploadHook.createFileInput(contentHook.selectedCategory, handleUploadSuccess)}
+        getFileInputProps={() => uploadHook.getFileInputProps(contentHook.selectedCategory, handleUploadSuccess)}
       />
     </div>
   );

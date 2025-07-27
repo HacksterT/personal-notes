@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
-import TagBoxes from '../../TagBoxes';
+import TagBoxes from '../../Settings/shared/TagBoxes';
 
 const EditorPanel = ({
   studyNotes,

@@ -89,7 +89,7 @@ const LibraryEntrance = () => {
               {/* Door Content */}
               <div className="flex flex-col items-center justify-center h-full">
                 {/* Icon */}
-                <door.icon className="text-4xl text-brass mb-3 group-hover:text-brass-light" />
+                {React.createElement(door.icon, { className: "text-4xl text-brass mb-3 group-hover:text-brass-light" })}
                 
                 {/* Title */}
                 <h3 className="text-base font-medium text-brass-light mb-2 text-center">

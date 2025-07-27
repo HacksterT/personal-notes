@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileText, Filter } from 'lucide-react';
-import TagBoxes from '../../TagBoxes';
+import TagBoxes from '../../Settings/shared/TagBoxes';
 
 const ResourcePanel = ({
   selectedResources,

@@ -1,0 +1,51 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "editor.formatOnSave": true,
+        "files.exclude": {
+            "**/.git": true,
+            "**/.DS_Store": true,
+            "**/node_modules": true,
+            "**/*.prd": false
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/bower_components": true,
+            "**/archive": true
+        },
+        "javascript.validate.enable": true,
+        "javascript.format.enable": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "python.linting.enabled": true
+    },
+    "extensions": {
+        "recommendations": [
+            "dbaeumer.vscode-eslint",
+            "esbenp.prettier-vscode",
+            "ms-python.python",
+            "ms-azuretools.vscode-docker"
+        ]
+    },
+    "launch": {
+        "configurations": [
+            {
+                "type": "msedge",
+                "request": "launch",
+                "name": "Launch Frontend (Edge)",
+                "url": "http://localhost:8001",
+                "webRoot": "${workspaceFolder}/frontend"
+            },
+            {
+                "type": "chrome",
+                "request": "launch",
+                "name": "Launch Frontend (Chrome)",
+                "url": "http://localhost:8001",
+                "webRoot": "${workspaceFolder}/frontend"
+            }
+        ]
+    }
+}

@@ -99,18 +99,16 @@ export const useFileUpload = () => {
     }
   };
 
-  // Create file input element (to be placed in component)
-  const createFileInput = (category, onSuccess) => {
-    return (
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".txt,.md,.pdf,.docx"
-        onChange={(e) => handleFileSelect(e, category, onSuccess)}
-        style={{ display: 'none' }}
-      />
-    );
+  // Get file input props (to be used by component)
+  const getFileInputProps = (category, onSuccess) => {
+    return {
+      ref: fileInputRef,
+      type: 'file',
+      multiple: true,
+      accept: '.txt,.md,.pdf,.docx',
+      onChange: (e) => handleFileSelect(e, category, onSuccess),
+      style: { display: 'none' }
+    };
   };
 
   return {
@@ -130,6 +128,6 @@ export const useFileUpload = () => {
     setShowUploadModal,
 
     // Utilities
-    createFileInput
+    getFileInputProps
   };
 };

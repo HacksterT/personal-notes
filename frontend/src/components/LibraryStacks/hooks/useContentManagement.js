@@ -110,7 +110,7 @@ export const useContentManagement = () => {
       setCategories(prev => ({
         ...prev,
         [categoryKey]: {
-          ...prev[categoryKey],
+          ...(prev[categoryKey] || {}),
           count: content.length
         }
       }));

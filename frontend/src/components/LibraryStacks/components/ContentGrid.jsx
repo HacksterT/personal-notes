@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, Edit3, Trash2, Download, Share2, Calendar, FileText, Tag } from 'lucide-react';
-import TagBoxesPost from '../../TagBoxesPost';
+import TagBoxesPost from '../../Settings/shared/TagBoxesPost';
 
 // Simple markdown renderer for sermon content
 const MarkdownRenderer = ({ content }) => {

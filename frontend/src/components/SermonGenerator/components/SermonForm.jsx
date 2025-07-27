@@ -20,29 +20,6 @@ const SermonForm = ({
 }) => {
   return (
     <div className="space-y-6">
-      {/* Quick Template Buttons */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-cormorant text-wood-dark">Quick Start Templates</h3>
-        <div className="grid grid-cols-1 gap-2">
-          {Object.entries(templates).map(([key, template]) => (
-            <button
-              key={key}
-              onClick={() => onLoadTemplate(key)}
-              className="p-3 text-left bg-wood-light/10 hover:bg-wood-light/20 border border-wood-light/30 rounded-lg transition-colors duration-200"
-            >
-              <div className="font-medium text-wood-dark capitalize">
-                {key.replace('-', ' ')} Sermon
-              </div>
-              <div className="text-sm text-wood-dark/70 mt-1">
-                {key === 'topical' && 'Theme-based message with supporting scriptures'}
-                {key === 'expository' && 'Verse-by-verse biblical exposition'}
-                {key === 'narrative' && 'Story-driven biblical narrative'}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Input Text Area */}
       <div className="space-y-3">
         <h3 className="text-lg font-cormorant text-wood-dark">Sermon Notes & Content</h3>

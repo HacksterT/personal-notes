@@ -11,7 +11,7 @@ const UploadModal = ({
   onDragOver,
   onDrop,
   uploading,
-  createFileInput
+  getFileInputProps
 }) => {
   if (!showUploadModal) return null;
 
@@ -90,7 +90,7 @@ const UploadModal = ({
         </div>
 
         {/* Hidden File Input */}
-        {createFileInput()}
+        <input {...getFileInputProps()} />
 
         {/* Actions */}
         <div className="flex justify-end gap-3 mt-4">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
-import { tagCategories, prescriptiveTags } from '../constants/tagConstants';
+import { tagCategories, prescriptiveTags } from '../../../constants/tagConstants';
 
 const TagSettings = () => {
   // Import tag categories and prescriptive tags from constants

@@ -5,12 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Import components 
 import LandingPage from './components/LandingPage';
 import LibraryEntrance from './components/Library/LibraryEntrance';
-import StudyHall from './components/Library/StudyHall';
-import LibraryStacks from './components/Library/LibraryStacks';
-import SermonGenerator from './components/SermonGenerator';
-import SocialMediaStudio from './components/Library/SocialMediaStudio';
+import StudyHall from './components/StudyHall/StudyHall';
+import LibraryStacks from './components/LibraryStacks/LibraryStacks';
+import SermonGenerator from './components/SermonGenerator/SermonGenerator';
+import SocialMediaStudio from './components/SocialMediaStudio/SocialMediaStudio';
 import BibleReader from './components/Bible/BibleReader';
-import SettingsPage from './components/SettingsPage';
+import SettingsPage from './components/Settings/SettingsPage';
 
 // Create React Query client
 const queryClient = new QueryClient({

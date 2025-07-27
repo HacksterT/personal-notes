@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
-import { socialMediaPlatforms } from '../constants/tagConstants';
-import { apiService } from '../services/api';
+import { socialMediaPlatforms } from '../../../constants/tagConstants';
+import { apiService } from '../../../services/api';
 
 const TagBoxesPost = ({ postTags = [], contentId, onPostTagsChange }) => {
   // State for current post tag selections (editable)

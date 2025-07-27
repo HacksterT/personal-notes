@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
-import { tagCategories, organizeTagsByCategory, prescriptiveTags } from '../constants/tagConstants';
+import { tagCategories, organizeTagsByCategory, prescriptiveTags } from '../../../constants/tagConstants';
 
 const TagBoxes = ({ tags = [], category, compact = false, contentId, onTagsChange }) => {
   // State for current tag selections (editable)

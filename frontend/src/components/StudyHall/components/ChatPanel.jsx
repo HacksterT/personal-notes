@@ -74,7 +74,7 @@ const ChatPanel = ({
   );
 
   return (
-    <div className="bg-library-dark border-l border-brass/30 flex flex-col">
+    <div className="bg-library-dark border-l border-brass/30 flex flex-col h-full">
       {/* AI Header */}
       <div className="p-2 border-b border-brass/30 bg-brass/10">
         <h3 className="text-xl font-cormorant text-brass flex items-center gap-2">
@@ -83,8 +83,8 @@ const ChatPanel = ({
         </h3>
       </div>
 
-      {/* Chat History Area - Reduced Height */}
-      <div className="h-64 p-4 border-b border-brass/30 bg-library-dark/50 overflow-y-auto" id="chat-history">
+      {/* Chat History Area - Flexible with Max Height */}
+      <div className="flex-1 max-h-80 p-4 border-b border-brass/30 bg-library-dark/50 overflow-y-auto" id="chat-history">
         <div className="space-y-0">
           {chatHistory.length === 0 ? (
             <div className="text-center text-brass-light text-xs italic py-8">
@@ -113,14 +113,14 @@ const ChatPanel = ({
       </div>
 
       {/* Chat Input */}
-      <div className="p-3 border-b border-brass/30">
+      <div className="p-4 border-b border-brass/30">
         <form onSubmit={onChatSubmit}>
           <textarea
             value={chatMessage}
             onChange={(e) => setChatMessage(e.target.value)}
             placeholder="Ask about your current study, request biblical insights, or get theological guidance..."
             className="w-full p-2 bg-cream/90 border border-brass/30 rounded text-library-dark text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brass/50"
-            rows="2"
+            rows="3"
           />
           <button 
             type="submit"
@@ -146,12 +146,6 @@ const ChatPanel = ({
         </div>
       </div>
 
-      {/* Placeholder for where Active Resources and Library Resources will move */}
-      <div className="flex-1 p-4">
-        <div className="text-center text-brass-light text-sm italic">
-          Active Resources and Library Resources will be moved here from the layout changes
-        </div>
-      </div>
     </div>
   );
 };

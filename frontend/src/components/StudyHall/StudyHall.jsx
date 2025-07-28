@@ -21,7 +21,7 @@ const StudyHall = () => {
   const navigate = useNavigate();
   
   // Panel accordion state
-  const [isBiblePanelCollapsed, setIsBiblePanelCollapsed] = useState(false);
+  const [isResourcePanelCollapsed, setIsResourcePanelCollapsed] = useState(false);
   
   // Use custom hooks
   const editorHook = useStudyEditor();
@@ -65,9 +65,9 @@ const StudyHall = () => {
     navigate('/workshop');
   };
 
-  // Handle Bible panel toggle
-  const handleBiblePanelToggle = () => {
-    setIsBiblePanelCollapsed(!isBiblePanelCollapsed);
+  // Handle Resource panel toggle
+  const handleResourcePanelToggle = () => {
+    setIsResourcePanelCollapsed(!isResourcePanelCollapsed);
   };
 
   // Wrapper for chat submit to provide required parameters
@@ -115,7 +115,7 @@ const StudyHall = () => {
       <div 
         className="grid h-[calc(100vh-80px)] transition-all duration-300 ease-in-out"
         style={{
-          gridTemplateColumns: isBiblePanelCollapsed 
+          gridTemplateColumns: isResourcePanelCollapsed 
             ? '40px 1fr 350px' 
             : '300px 1fr 350px'
         }}
@@ -125,17 +125,17 @@ const StudyHall = () => {
         <div className="bg-library-brown/20 border-r border-brass/30 flex flex-col overflow-hidden transition-all duration-300 ease-in-out">
           {/* Panel Header with Toggle */}
           <div className={`flex items-center border-b border-brass/30 bg-library-brown/30 transition-all duration-300 ${
-            isBiblePanelCollapsed ? 'justify-center p-2' : 'justify-between p-3'
+            isResourcePanelCollapsed ? 'justify-center p-2' : 'justify-between p-3'
           }`}>
-            {!isBiblePanelCollapsed && (
+            {!isResourcePanelCollapsed && (
               <h3 className="text-lg font-cormorant text-brass-light">Resources</h3>
             )}
             <button
-              onClick={handleBiblePanelToggle}
+              onClick={handleResourcePanelToggle}
               className="p-1 rounded hover:bg-brass/20 transition-colors duration-200 text-brass-light hover:text-brass flex-shrink-0"
-              title={isBiblePanelCollapsed ? "Expand Panel" : "Collapse Panel"}
+              title={isResourcePanelCollapsed ? "Expand Panel" : "Collapse Panel"}
             >
-              {isBiblePanelCollapsed ? (
+              {isResourcePanelCollapsed ? (
                 <ChevronRight size={16} />
               ) : (
                 <ChevronLeft size={18} />
@@ -144,11 +144,11 @@ const StudyHall = () => {
           </div>
 
           {/* Collapsed State Content */}
-          {isBiblePanelCollapsed ? (
+          {isResourcePanelCollapsed ? (
             <div className="flex-1 flex flex-col items-center justify-center">
               <div 
                 className="transform -rotate-90 text-brass-light text-sm font-medium whitespace-nowrap cursor-pointer hover:text-brass transition-colors duration-200"
-                onClick={handleBiblePanelToggle}
+                onClick={handleResourcePanelToggle}
                 title="Expand Panel"
               >
                 Resources
@@ -157,7 +157,6 @@ const StudyHall = () => {
           ) : (
             <ResourcePanel 
               selectedResources={resourceHook.selectedResources}
-              availableResources={resourceHook.availableResources}
               filteredResources={resourceHook.filteredResources}
               resourceFilter={resourceHook.resourceFilter}
               viewingResourceIndex={resourceHook.viewingResourceIndex}
@@ -234,6 +233,8 @@ const StudyHall = () => {
               currentTags={editorHook.currentTags}
               editingContentId={editorHook.editingContentId}
               aiAnalysisInProgress={editorHook.aiAnalysisInProgress}
+              selectedResources={resourceHook.selectedResources}
+              viewingResourceIndex={resourceHook.viewingResourceIndex}
               onContentChange={editorHook.handleContentChange}
               onCategoryChange={editorHook.handleCategoryChange}
               onTagsChange={editorHook.handleTagsChange}

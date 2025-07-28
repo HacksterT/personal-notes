@@ -73,18 +73,15 @@ class APIService {
   }
 
   async getCurrentUser() {
-    if (!this.token) return null;
-    
-    try {
-      const response = await fetch(`${this.baseURL}/api/auth/me`, {
-        headers: this.getAuthHeaders()
-      });
-      
-      return await this.handleResponse(response);
-    } catch (error) {
-      console.error('Get user error:', error);
-      return null;
+    if (!this.token) {
+      throw new Error('No authentication token available');
     }
+    
+    const response = await fetch(`${this.baseURL}/api/auth/me`, {
+      headers: this.getAuthHeaders()
+    });
+    
+    return await this.handleResponse(response);
   }
 
   // Content Management
@@ -107,7 +104,9 @@ class APIService {
   }
 
   async getContent(contentId) {
-    const response = await fetch(`${this.baseURL}/api/storage/content/${contentId}`);
+    const response = await fetch(`${this.baseURL}/api/storage/content/${contentId}`, {
+      headers: this.getAuthHeaders()
+    });
 
     return await this.handleResponse(response);
   }
@@ -174,19 +173,25 @@ class APIService {
       params.append('category', category);
     }
 
-    const response = await fetch(`${this.baseURL}/api/storage/search?${params}`);
+    const response = await fetch(`${this.baseURL}/api/storage/search?${params}`, {
+      headers: this.getAuthHeaders()
+    });
 
     return await this.handleResponse(response);
   }
 
   async getStorageUsage() {
-    const response = await fetch(`${this.baseURL}/api/storage/usage`);
+    const response = await fetch(`${this.baseURL}/api/storage/usage`, {
+      headers: this.getAuthHeaders()
+    });
 
     return await this.handleResponse(response);
   }
 
   async getCategories() {
-    const response = await fetch(`${this.baseURL}/api/storage/categories`);
+    const response = await fetch(`${this.baseURL}/api/storage/categories`, {
+      headers: this.getAuthHeaders()
+    });
     return await this.handleResponse(response);
   }
 
@@ -227,12 +232,8 @@ class APIService {
 
   // Demo users (for development)
   async getDemoUsers() {
-    try {
-      const response = await fetch(`${this.baseURL}/api/auth/demo-users`);
-      return await this.handleResponse(response);
-    } catch (error) {
-      return { users: [] };
-    }
+    const response = await fetch(`${this.baseURL}/api/auth/demo-users`);
+    return await this.handleResponse(response);
   }
 }
 
@@ -292,14 +293,18 @@ export const useAuth = () => {
 export const useStorage = () => {
   const [usage, setUsage] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
 
   const refreshUsage = async () => {
     try {
       setLoading(true);
+      setError(null);
       const usageData = await apiService.getStorageUsage();
       setUsage(usageData);
-    } catch (error) {
-      console.error('Failed to get storage usage:', error);
+    } catch (err) {
+      const errorMessage = 'Failed to get storage usage. Please try again.';
+      console.error('Storage usage error:', err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -332,6 +337,7 @@ export const useStorage = () => {
   return {
     usage,
     loading,
+    error,
     refreshUsage,
     uploadFiles,
     deleteContent
@@ -344,7 +350,7 @@ export const useContent = (category = null) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
-  const loadContent = async (refresh = false) => {
+  const loadContent = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -352,8 +358,9 @@ export const useContent = (category = null) => {
       const response = await apiService.listContent(category);
       setItems(response.items || []);
     } catch (err) {
-      setError(err.message);
-      console.error('Failed to load content:', err);
+      const errorMessage = 'Failed to load content. Please try again.';
+      setError(errorMessage);
+      console.error('Content loading error:', err);
     } finally {
       setLoading(false);
     }
@@ -372,8 +379,9 @@ export const useContent = (category = null) => {
       const response = await apiService.searchContent(query, category);
       setItems(response.items || []);
     } catch (err) {
-      setError(err.message);
-      console.error('Search failed:', err);
+      const errorMessage = 'Search failed. Please try again.';
+      setError(errorMessage);
+      console.error('Content search error:', err);
     } finally {
       setLoading(false);
     }

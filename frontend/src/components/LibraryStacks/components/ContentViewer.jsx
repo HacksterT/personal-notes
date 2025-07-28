@@ -85,6 +85,25 @@ const ContentViewer = ({
           </div>
         </div>
 
+        {/* Key Themes Box */}
+        {selectedContent.key_themes && selectedContent.key_themes.length > 0 && (
+          <div className="px-6 py-4 bg-brass/5 border-b border-brass/20">
+            <div className="mb-2">
+              <h3 className="text-sm font-semibold text-brass uppercase tracking-wide">Key Themes</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedContent.key_themes.map((theme, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-brass/10 text-brass border border-brass/30 rounded-md text-sm font-medium"
+                >
+                  {theme}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Tags */}
         {selectedContent.tags && selectedContent.tags.length > 0 && (
           <div className="px-6 py-3 border-b border-wood-light/20">

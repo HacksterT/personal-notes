@@ -28,4 +28,4 @@ const SearchBar = ({ searchQuery, onSearchChange, onClearSearch }) => {
   );
 };
 
-export default SearchBar;
+export default React.memo(SearchBar);

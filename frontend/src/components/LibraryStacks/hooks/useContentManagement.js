@@ -1,5 +1,21 @@
+/**
+ * useContentManagement Hook
+ * 
+ * This hook manages all content-related functionality for the LibraryStacks component.
+ * It handles:
+ * - Loading and managing category data and content
+ * - Content operations (view, edit, delete, download, share)
+ * - Tag management for content items
+ * - Content viewer state management
+ * - AI analysis integration for content summaries
+ * - Storage usage tracking
+ * - Error handling for content operations
+ */
+
 import { useState, useEffect } from 'react';
 import { apiService } from '../../../services/api';
+import { useErrorHandler } from './useErrorHandler';
+import { jsPDF } from 'jspdf';
 
 export const useContentManagement = () => {
   const [categories, setCategories] = useState({});
@@ -10,6 +26,9 @@ export const useContentManagement = () => {
   const [error, setError] = useState('');
   const [storageUsage, setStorageUsage] = useState({});
   const [updatingTags, setUpdatingTags] = useState(new Set());
+  
+  // Enhanced error handling
+  const errorHandler = useErrorHandler();
   
   // Content viewer state
   const [showContentViewer, setShowContentViewer] = useState(false);
@@ -46,16 +65,26 @@ export const useContentManagement = () => {
         'social-media-posts': { name: 'Social Media Posts', icon: '💬', count: 0, totalSizeBytes: 0 }
       };
       
-      // Load actual counts for each category
-      for (const [categoryKey, category] of Object.entries(mockCategories)) {
+      // Load actual counts for each category with enhanced error handling
+      const categoryPromises = Object.entries(mockCategories).map(async ([categoryKey]) => {
         try {
           const response = await apiService.listContent(categoryKey, 50, 0);
           const content = response.items || [];
-          mockCategories[categoryKey].count = content.length;
+          return { categoryKey, count: content.length, success: true };
         } catch (err) {
-          console.error(`Failed to load ${categoryKey} count:`, err);
+          errorHandler.handleError(err, `Loading ${categoryKey} count`, { 
+            critical: false, 
+            errorKey: `category-${categoryKey}`,
+            showToast: false 
+          });
+          return { categoryKey, count: 0, success: false };
         }
-      }
+      });
+      
+      const results = await Promise.all(categoryPromises);
+      results.forEach(({ categoryKey, count }) => {
+        mockCategories[categoryKey].count = count;
+      });
       
       setStorageUsage(usage);
       setCategories(mockCategories);
@@ -67,8 +96,13 @@ export const useContentManagement = () => {
       
       console.log('✅ Library stacks data loaded');
     } catch (err) {
+      const errorMessage = 'Failed to load library data. Please refresh the page and try again.';
       console.error('❌ Failed to load library stacks:', err);
-      setError('Failed to load library data. Please refresh the page and try again.');
+      setError(errorMessage);
+      errorHandler.handleError(err, 'Loading library data', { 
+        critical: true, 
+        errorKey: 'library-load' 
+      });
     } finally {
       setLoading(false);
     }
@@ -79,23 +113,40 @@ export const useContentManagement = () => {
     try {
       console.log('🔄 Refreshing category counts...');
       
+      // CRITICAL FIX: Validate categories state before proceeding
+      if (!categories || Object.keys(categories).length === 0) {
+        console.log('⚠️ Categories state is empty/corrupted, re-initializing...');
+        await loadLibraryData(true); // Skip category content load, just restore categories
+        return;
+      }
+      
       const updatedCategories = { ...categories };
+      let successCount = 0;
+      const totalCategories = Object.keys(updatedCategories).length;
       
       // Load actual counts for each category
-      for (const [categoryKey, category] of Object.entries(updatedCategories)) {
+      for (const [categoryKey] of Object.entries(updatedCategories)) {
         try {
           const response = await apiService.listContent(categoryKey, 50, 0);
           const content = response.items || [];
           updatedCategories[categoryKey].count = content.length;
+          successCount++;
         } catch (err) {
           console.error(`Failed to load ${categoryKey} count:`, err);
+          // Keep existing count on individual failure
         }
       }
       
-      setCategories(updatedCategories);
-      console.log('✅ Category counts refreshed');
+      // CRITICAL FIX: Only update categories if at least some API calls succeeded
+      if (successCount > 0) {
+        setCategories(updatedCategories);
+        console.log(`✅ Category counts refreshed (${successCount}/${totalCategories} successful)`);
+      } else {
+        console.error('❌ All category refresh API calls failed, keeping existing categories');
+      }
     } catch (err) {
       console.error('❌ Failed to refresh category counts:', err);
+      // CRITICAL FIX: Don't update categories state on total failure
     }
   };
 
@@ -160,10 +211,19 @@ export const useContentManagement = () => {
     try {
       setUpdatingTags(prev => new Set([...prev, contentId]));
       
-      // Try to use the new updateContentTags method
-      await apiService.updateContentTags(contentId, newTags, newPostTags);
+      // Update regular tags if provided
+      if (newTags !== null && newTags !== undefined) {
+        await apiService.updateContentTags(contentId, newTags);
+        console.log('✅ Regular tags updated successfully');
+      }
       
-      console.log('✅ Tags updated successfully');
+      // Update post_tags if provided (for social media posts)
+      if (newPostTags !== null && newPostTags !== undefined) {
+        await apiService.updateContentPostTags(contentId, newPostTags);
+        console.log('✅ Post tags updated successfully');
+      }
+      
+      console.log('✅ All tag updates completed');
       
       // Update local state for both category content and all content
       const updateFunction = (item) => 
@@ -284,30 +344,161 @@ export const useContentManagement = () => {
     }
   };
 
-  // Handle file download
-  const handleDownload = async (item) => {
+  // Generate PDF from content
+  const generatePDF = async (content, filename) => {
     try {
-      console.log('⬇️ Downloading content:', item.title);
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const maxLineWidth = pageWidth - 2 * margin;
+      let currentY = margin;
       
-      // Get the content
-      const content = item.content || '';
-      const filename = item.filename || `${item.title}.txt`;
+      // Helper function to add text with word wrapping
+      const addTextToPDF = (text, fontSize = 12, isBold = false) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        
+        const lines = doc.splitTextToSize(text, maxLineWidth);
+        
+        for (const line of lines) {
+          // Check if we need a new page
+          if (currentY > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            currentY = margin;
+          }
+          
+          doc.text(line, margin, currentY);
+          currentY += fontSize * 0.6; // Line spacing
+        }
+        
+        currentY += 5; // Extra spacing after paragraph
+      };
       
-      // Create blob and download
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Process content sections
+      const sections = content.split('='.repeat(60));
       
-      console.log('✅ Download initiated');
+      for (const section of sections) {
+        const trimmedSection = section.trim();
+        if (!trimmedSection) continue;
+        
+        const lines = trimmedSection.split('\n');
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) {
+            currentY += 5; // Add spacing for empty lines
+            continue;
+          }
+          
+          // Check for headers (section titles)
+          if (trimmedLine === 'KEY THEMES' || trimmedLine === 'THOUGHT QUESTIONS' || trimmedLine === 'CONTENT') {
+            addTextToPDF(trimmedLine, 16, true);
+          } else if (trimmedLine.match(/^\d+\./)) {
+            // Numbered list items
+            addTextToPDF(trimmedLine, 12, false);
+          } else {
+            // Regular content
+            addTextToPDF(trimmedLine, 12, false);
+          }
+        }
+      }
+      
+      // Save the PDF
+      doc.save(`${filename}.pdf`);
+      console.log('✅ PDF generated successfully');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      throw new Error('Failed to generate PDF. Please try downloading as text instead.');
+    }
+  };
+
+  // Handle file download with AI analysis integration
+  const handleDownload = async (item, format = 'txt') => {
+    try {
+      console.log('⬇️ Downloading content:', item.title, 'Format:', format);
+      
+      // Ensure we have complete content data including AI analysis
+      let fullItem = item;
+      if (!item.key_themes || !item.thought_questions) {
+        try {
+          console.log('📥 Fetching complete content with AI analysis...');
+          fullItem = await apiService.getContent(item.id);
+        } catch (fetchError) {
+          console.warn('Could not fetch complete content, using available data:', fetchError);
+          fullItem = item;
+        }
+      }
+      
+      // Build content structure with AI analysis at top
+      let downloadContent = '';
+      
+      // Add AI Analysis section if available
+      if (fullItem.key_themes && fullItem.key_themes.length > 0) {
+        downloadContent += '='.repeat(60) + '\n';
+        downloadContent += 'KEY THEMES\n';
+        downloadContent += '='.repeat(60) + '\n\n';
+        
+        fullItem.key_themes.slice(0, 3).forEach((theme, index) => {
+          downloadContent += `${index + 1}. ${theme}\n`;
+        });
+        downloadContent += '\n';
+      }
+      
+      if (fullItem.thought_questions && fullItem.thought_questions.length > 0) {
+        downloadContent += '='.repeat(60) + '\n';
+        downloadContent += 'THOUGHT QUESTIONS\n';
+        downloadContent += '='.repeat(60) + '\n\n';
+        
+        fullItem.thought_questions.forEach((question, index) => {
+          downloadContent += `${index + 1}. ${question}\n`;
+        });
+        downloadContent += '\n';
+      }
+      
+      // Add separator between AI analysis and content
+      if (downloadContent) {
+        downloadContent += '='.repeat(60) + '\n';
+        downloadContent += 'CONTENT\n';
+        downloadContent += '='.repeat(60) + '\n\n';
+      }
+      
+      // Add main content
+      downloadContent += fullItem.content || '';
+      
+      // Generate filename with format extension
+      const baseFilename = fullItem.title.replace(/[<>:"/\\|?*]/g, '_'); // Sanitize filename
+      const filename = `${baseFilename}.${format}`;
+      
+      // Handle different formats
+      if (format === 'pdf' && fullItem.category === 'sermons') {
+        // Generate PDF for sermons
+        await generatePDF(downloadContent, filename.replace('.pdf', ''));
+      } else {
+        // Determine MIME type based on format
+        let mimeType = 'text/plain';
+        if (format === 'md') {
+          mimeType = 'text/markdown';
+        }
+        
+        // Create blob and download for text/markdown
+        const blob = new Blob([downloadContent], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      
+      console.log('✅ Download initiated with AI analysis included');
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Failed to download file. Please try again.');
+      errorHandler.handleError(error, 'Downloading content', { 
+        critical: false, 
+        errorKey: `download-${item.id}` 
+      });
     }
   };
 
@@ -356,6 +547,9 @@ export const useContentManagement = () => {
     setSelectedContentForSummary,
     setSelectedContentId,
     setSelectedCategory,
-    setError
+    setError,
+    
+    // Error handling
+    errorHandler
   };
 };

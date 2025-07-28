@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Edit3, Trash2, Download, Share2, Calendar, FileText, Tag } from 'lucide-react';
 import TagBoxesPost from '../../Settings/shared/TagBoxesPost';
+import DownloadDropdown from './DownloadDropdown';
 
 // Simple markdown renderer for sermon content
 const MarkdownRenderer = ({ content }) => {
@@ -45,7 +46,9 @@ const ContentGrid = ({
   onContentAction,
   onTagsChange,
   updatingTags,
-  searchQuery
+  selectedArtifact,
+  onArtifactSelect,
+  handleDownload
 }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'No date';
@@ -70,8 +73,18 @@ const ContentGrid = ({
   if (viewMode === 'list') {
     return (
       <div className="space-y-2">
-        {content.map((item) => (
-          <div key={item.id} className="bg-white rounded-lg border border-wood-light/30 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+        {content.map((item) => {
+          const isSelected = selectedArtifact && selectedArtifact.id === item.id;
+          return (
+            <div 
+              key={item.id} 
+              className={`bg-white rounded-lg border p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                isSelected 
+                  ? 'border-yellow-400 border-2 bg-yellow-50' 
+                  : 'border-wood-light/30 hover:border-brass/40'
+              }`}
+              onClick={() => onArtifactSelect(item)}
+            >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
@@ -85,28 +98,29 @@ const ContentGrid = ({
                 
                 <div className="flex items-center gap-4 text-sm text-wood-dark/70 mt-1">
                   <span className="flex items-center gap-1">
-                    <Calendar size={14} />
+                    <Calendar size={12} />
                     {formatDate(item.date_modified || item.date_created)}
                   </span>
                   <span className="flex items-center gap-1">
-                    <FileText size={14} />
+                    <FileText size={12} />
                     {formatFileSize(item.size_bytes)}
                   </span>
                 </div>
                 
                 {item.tags && item.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {item.tags.slice(0, 3).map((tag, index) => (
+                    {item.tags.slice(0, 4).map((tag, index) => (
                       <span
                         key={index}
                         className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-wood-light/20 text-wood-dark border border-wood-light/30"
                       >
+                        <Tag size={10} className="mr-1" />
                         {tag}
                       </span>
                     ))}
-                    {item.tags.length > 3 && (
-                      <span className="text-xs text-wood-dark/60">
-                        +{item.tags.length - 3} more
+                    {item.tags.length > 4 && (
+                      <span className="text-xs text-wood-dark/60 px-2 py-1">
+                        +{item.tags.length - 4} more
                       </span>
                     )}
                   </div>
@@ -115,28 +129,40 @@ const ContentGrid = ({
               
               <div className="flex items-center gap-2 ml-4">
                 <button
-                  onClick={() => onContentAction('view', item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onContentAction('view', item);
+                  }}
                   className="p-2 text-wood-dark/60 hover:text-brass hover:bg-brass/10 rounded-lg transition-colors"
                   title="View"
                 >
                   <Eye size={16} />
                 </button>
                 <button
-                  onClick={() => onContentAction('edit', item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onContentAction('edit', item);
+                  }}
                   className="p-2 text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   title="Edit"
                 >
                   <Edit3 size={16} />
                 </button>
                 <button
-                  onClick={() => onContentAction('download', item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onContentAction('download', item);
+                  }}
                   className="p-2 text-wood-dark/60 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                   title="Download"
                 >
                   <Download size={16} />
                 </button>
                 <button
-                  onClick={() => onContentAction('delete', item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onContentAction('delete', item);
+                  }}
                   className="p-2 text-wood-dark/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Delete"
                 >
@@ -145,21 +171,32 @@ const ContentGrid = ({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
 
   // Card view
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {content.map((item) => (
-        <div key={item.id} className="bg-white rounded-lg border border-wood-light/30 shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+      {content.map((item) => {
+        const isSelected = selectedArtifact && selectedArtifact.id === item.id;
+        return (
+        <div 
+          key={item.id} 
+          className={`bg-white rounded-lg border shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer ${
+            isSelected 
+              ? 'border-yellow-400 border-2 bg-yellow-50' 
+              : 'border-wood-light/30 hover:border-brass/40'
+          }`}
+          onClick={() => onArtifactSelect(item)}
+        >
           {/* Card Header */}
-          <div className="p-4 border-b border-wood-light/20">
+          <div className="p-3 md:p-4 border-b border-wood-light/20">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <h3 className="font-cormorant font-semibold text-wood-dark text-lg leading-tight mb-2">
+                <h3 className="font-cormorant font-semibold text-wood-dark text-base md:text-lg leading-tight mb-2 truncate" title={item.title}>
                   {item.title || 'Untitled'}
                 </h3>
                 <div className="flex items-center gap-2 text-sm text-wood-dark/70">
@@ -173,7 +210,7 @@ const ContentGrid = ({
           </div>
 
           {/* Card Content */}
-          <div className="p-4">
+          <div className="p-3 md:p-4">
             <div className="text-sm text-wood-dark/80 leading-relaxed mb-3">
               {item.content ? (
                 <MarkdownRenderer content={truncateContent(item.content)} />
@@ -221,48 +258,50 @@ const ContentGrid = ({
           </div>
 
           {/* Card Actions */}
-          <div className="px-4 py-3 bg-wood-light/10 border-t border-wood-light/20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="px-3 md:px-4 py-3 bg-wood-light/10 border-t border-wood-light/20 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
-                onClick={() => onContentAction('view', item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContentAction('view', item);
+                }}
                 className="p-2 text-wood-dark/60 hover:text-brass hover:bg-brass/10 rounded-lg transition-colors"
                 title="View"
               >
                 <Eye size={16} />
               </button>
               <button
-                onClick={() => onContentAction('edit', item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContentAction('edit', item);
+                }}
                 className="p-2 text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 title="Edit"
               >
                 <Edit3 size={16} />
               </button>
-              <button
-                onClick={() => onContentAction('summary', item)}
-                className="px-3 py-1 text-xs font-medium text-brass hover:text-brass-dark bg-brass/10 hover:bg-brass/20 rounded-lg transition-colors border border-brass/20"
-                title="AI Summary"
-              >
-                Summary
-              </button>
             </div>
             
             <div className="flex items-center gap-1">
+              <DownloadDropdown 
+                item={item} 
+                onDownload={handleDownload} 
+              />
               <button
-                onClick={() => onContentAction('download', item)}
-                className="p-2 text-wood-dark/60 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                title="Download"
-              >
-                <Download size={16} />
-              </button>
-              <button
-                onClick={() => onContentAction('share', item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContentAction('share', item);
+                }}
                 className="p-2 text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 title="Share"
               >
                 <Share2 size={16} />
               </button>
               <button
-                onClick={() => onContentAction('delete', item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContentAction('delete', item);
+                }}
                 className="p-2 text-wood-dark/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Delete"
               >
@@ -271,9 +310,10 @@ const ContentGrid = ({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
 
-export default ContentGrid;
+export default React.memo(ContentGrid);

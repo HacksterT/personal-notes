@@ -1,3 +1,16 @@
+/**
+ * useFileUpload Hook
+ * 
+ * This hook manages all file upload functionality for the LibraryStacks component.
+ * It handles:
+ * - File selection via input or drag-and-drop
+ * - File upload processing with progress tracking
+ * - Upload modal state management
+ * - Error handling for upload operations
+ * - File input reference management
+ * - Upload state management to prevent concurrent uploads
+ */
+
 import { useState, useRef } from 'react';
 import { apiService } from '../../../services/api';
 

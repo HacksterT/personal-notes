@@ -15,7 +15,7 @@ const FilterControls = ({
   onClearFilters
 }) => {
   return (
-    <div className="bg-white rounded-lg border border-wood-light/30 p-4 space-y-4">
+    <div className="bg-white rounded-lg border border-wood-light/30 p-4 space-y-4 h-[370px] flex flex-col">
       {/* View Mode Toggle */}
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-wood-dark">View:</span>
@@ -67,40 +67,69 @@ const FilterControls = ({
           value={sortMode}
           onChange={(e) => onSortModeChange(e.target.value)}
           className="px-3 py-1 text-sm border border-wood-light/30 rounded-lg bg-white text-wood-dark"
+          title="Sort content by selected criteria with secondary sorting"
         >
-          <option value="date">Date Modified</option>
-          <option value="title">Title</option>
-          <option value="category">Category</option>
+          <option value="date">📅 Date Modified (newest first)</option>
+          <option value="title">🔤 Title (A-Z)</option>
+          <option value="category">📁 Category (A-Z)</option>
         </select>
+        <div className="text-xs text-wood-dark/60">
+          {sortMode === 'date' && '⬇️ Newest first, then by title'}
+          {sortMode === 'title' && '⬇️ A-Z, then by date'}
+          {sortMode === 'category' && '⬇️ A-Z, then by title'}
+        </div>
       </div>
 
       {/* Multi-Tag Filters */}
       <div className="space-y-2">
         <span className="text-sm font-medium text-wood-dark">Tag Filters:</span>
-        {multiTagFilters.map((filter, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <select
-              value={filter.operator}
-              onChange={(e) => onMultiTagOperatorChange(index, e.target.value)}
-              className="px-2 py-1 text-xs border border-wood-light/30 rounded bg-white text-wood-dark"
-            >
-              <option value="AND">AND</option>
-              <option value="OR">OR</option>
-            </select>
-            <select
-              value={filter.tag}
-              onChange={(e) => onMultiTagChange(index, e.target.value)}
-              className="flex-1 px-2 py-1 text-xs border border-wood-light/30 rounded bg-white text-wood-dark"
-            >
-              <option value="">Select tag...</option>
-              {availableTags.map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+        
+        {/* Grid layout for perfect alignment */}
+        <div className="grid grid-cols-[60px_1fr] gap-2">
+          {/* First row - empty operator cell + tag dropdown */}
+          <div className="invisible">AND</div>
+          <select
+            value={multiTagFilters[0].tag}
+            onChange={(e) => onMultiTagChange(0, e.target.value)}
+            className="w-full px-2 py-1 text-xs border border-wood-light/30 rounded bg-white text-wood-dark"
+          >
+            <option value="">Select tag...</option>
+            {availableTags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </select>
+          
+          {/* Remaining rows with operators */}
+          {multiTagFilters.slice(1).map((filter, idx) => {
+            const index = idx + 1; // Actual index in the original array
+            return (
+              <React.Fragment key={index}>
+                <select
+                  value={filter.operator}
+                  onChange={(e) => onMultiTagOperatorChange(index, e.target.value)}
+                  className="px-2 py-1 text-xs border border-wood-light/30 rounded bg-white text-wood-dark"
+                >
+                  <option value="AND">AND</option>
+                  <option value="OR">OR</option>
+                </select>
+                <select
+                  value={filter.tag}
+                  onChange={(e) => onMultiTagChange(index, e.target.value)}
+                  className="w-full px-2 py-1 text-xs border border-wood-light/30 rounded bg-white text-wood-dark"
+                >
+                  <option value="">Select tag...</option>
+                  {availableTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
 
       {/* Clear Filters */}
@@ -114,4 +143,4 @@ const FilterControls = ({
   );
 };
 
-export default FilterControls;
+export default React.memo(FilterControls);

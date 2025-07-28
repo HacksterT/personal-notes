@@ -25,10 +25,12 @@ Sermon Organizer is a FastAPI + React application for creating sermons, devotion
 - **Key Libraries**: @tanstack/react-query, framer-motion, lucide-react, socket.io-client
 - **Build Target**: Static files served by FastAPI backend
 
-### Database
-- PostgreSQL with async connections via asyncpg
-- Database URL: `postgresql://dev_user:dev_password@db:5432/sermon_organizer_dev`
-- Storage service handles file operations and metadata
+### Database & Storage
+- **PostgreSQL**: Primary data storage with async connections via asyncpg
+- **Database URL**: `postgresql://dev_user:dev_password@db:5432/sermon_organizer_dev`
+- **Storage Architecture**: Pure PostgreSQL storage - all content, metadata, and AI analysis stored in database
+- **File Handling**: Uploaded files processed for text extraction, then stored as content in database
+- **Downloads**: Generated on-demand using Blob API from database content
 
 ## Development Commands
 

@@ -60,7 +60,7 @@ const LibraryStacks = () => {
       );
 
       // Navigate to StudyHall
-      navigate("/study-hall");
+      navigate("/study");
       return;
     }
 
@@ -167,24 +167,36 @@ const LibraryStacks = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-8">
-        {/* Category Navigation */}
+        {/* Category Navigation with Drag & Drop */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {Object.entries(contentHook.categories).map(([key, category]) => (
-            <button
+            <div
               key={key}
-              onClick={() => handleCategoryChange(key)}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`relative p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer group ${
                 contentHook.selectedCategory === key
                   ? "border-brass bg-brass/10 text-brass"
                   : "border-wood-light/30 bg-white hover:border-brass/50 hover:bg-brass/5 text-wood-dark"
               }`}
+              onClick={() => handleCategoryChange(key)}
+              onDragOver={uploadHook.handleDragOver}
+              onDrop={(e) => uploadHook.handleDrop(e, key, contentHook.loadLibraryData)}
             >
               <div className="text-2xl mb-2">{category.icon}</div>
               <div className="font-cormorant font-semibold">
                 {category.name}
               </div>
               <div className="text-sm opacity-75">{category.count} items</div>
-            </button>
+              
+              {/* Upload Drop Zone Indicator */}
+              <div className="absolute top-2 right-2">
+                <Upload size={14} className="text-wood-dark/40 hover:text-brass transition-colors" title="Drop files here to upload" />
+              </div>
+              
+              {/* Drag Over Feedback */}
+              <div className="absolute inset-0 bg-brass/20 border-2 border-dashed border-brass rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                <div className="text-brass text-sm font-medium">Drop files here</div>
+              </div>
+            </div>
           ))}
         </div>
 
@@ -274,7 +286,6 @@ const LibraryStacks = () => {
                 viewMode={searchHook.viewMode}
                 onContentAction={handleContentAction}
                 onTagsChange={contentHook.handleTagsChange}
-                updatingTags={contentHook.updatingTags}
                 selectedArtifact={selectedArtifact}
                 onArtifactSelect={handleArtifactSelect}
                 handleDownload={contentHook.handleDownload}

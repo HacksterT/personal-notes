@@ -37,6 +37,9 @@ export const useContentTagManagement = () => {
     try {
       localStorage.setItem('customTags', JSON.stringify(customTags));
       console.log('Custom tags saved to localStorage:', customTags);
+      
+      // Dispatch custom event to notify TagBoxes components to refresh
+      window.dispatchEvent(new CustomEvent('customTagsUpdated'));
     } catch (error) {
       console.error('Failed to save custom tags to localStorage:', error);
     }

@@ -1,7 +1,9 @@
-import React from 'react';
-import { Eye, Edit3, Trash2, Download, Share2, Calendar, FileText, Tag } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, Edit3, Trash2, Download, Share2, Calendar, FileText, BookPlus } from 'lucide-react';
 import TagBoxesPost from '../../Settings/shared/TagBoxesPost';
+import TagBoxes from '../../Settings/shared/TagBoxes';
 import DownloadDropdown from './DownloadDropdown';
+import ActiveResourcesToast from './ActiveResourcesToast';
 
 // Simple markdown renderer for sermon content
 const MarkdownRenderer = ({ content }) => {
@@ -40,16 +42,95 @@ const MarkdownRenderer = ({ content }) => {
   );
 };
 
+// Loading skeleton for content cards
+const ContentCardSkeleton = () => (
+  <div className="content-card-skeleton">
+    <div className="skeleton-header">
+      <div className="skeleton h-6 rounded mb-2"></div>
+      <div className="flex items-center gap-2">
+        <div className="skeleton h-5 w-20 rounded-full"></div>
+        <div className="skeleton h-4 w-12 rounded"></div>
+      </div>
+    </div>
+    <div className="skeleton-body">
+      <div className="skeleton h-4 rounded mb-2"></div>
+      <div className="skeleton h-4 w-3/4 rounded mb-2"></div>
+      <div className="skeleton h-4 w-1/2 rounded mb-3"></div>
+      <div className="flex gap-1 mb-3">
+        <div className="skeleton h-6 w-12 rounded"></div>
+        <div className="skeleton h-6 w-12 rounded"></div>
+        <div className="skeleton h-6 w-12 rounded"></div>
+      </div>
+      <div className="skeleton h-3 w-24 rounded"></div>
+    </div>
+    <div className="skeleton-actions">
+      <div className="flex gap-2">
+        <div className="skeleton h-8 w-8 rounded"></div>
+        <div className="skeleton h-8 w-8 rounded"></div>
+      </div>
+      <div className="flex gap-1">
+        <div className="skeleton h-8 w-8 rounded"></div>
+        <div className="skeleton h-8 w-8 rounded"></div>
+        <div className="skeleton h-8 w-8 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
+
 const ContentGrid = ({
   content,
   viewMode,
   onContentAction,
   onTagsChange,
-  updatingTags,
   selectedArtifact,
   onArtifactSelect,
-  handleDownload
+  handleDownload,
+  loading = false,
+  activeResourcesCount = 0
 }) => {
+  const [toast, setToast] = useState({ isVisible: false, message: '', type: 'success' });
+
+  const handleAddToActiveResources = (item) => {
+    // Get current active resources from localStorage
+    const getCurrentActiveResourcesCount = () => {
+      try {
+        const stored = localStorage.getItem('activeResources');
+        if (stored) {
+          const resources = JSON.parse(stored);
+          return resources.length;
+        }
+        return 0;
+      } catch (error) {
+        console.error('Failed to read active resources from localStorage:', error);
+        return 0;
+      }
+    };
+
+    const currentCount = getCurrentActiveResourcesCount();
+    
+    // Check if active resources is full (5 is the limit)
+    if (currentCount >= 5) {
+      setToast({
+        isVisible: true,
+        message: 'Active resources is full, please remove one first',
+        type: 'warning'
+      });
+    } else {
+      // Add to active resources
+      onContentAction('addToActiveResources', item);
+      const newCount = currentCount + 1;
+      setToast({
+        isVisible: true,
+        message: `Content added to active resources ${newCount}/5`,
+        type: 'success'
+      });
+    }
+  };
+
+  const closeToast = () => {
+    setToast({ isVisible: false, message: '', type: 'success' });
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'No date';
     const date = new Date(dateString);
@@ -70,19 +151,28 @@ const ContentGrid = ({
     return text.substring(0, maxLength) + '...';
   };
 
+  // Show loading skeletons
+  if (loading) {
+    const skeletonCards = Array.from({ length: 6 }, (_, i) => (
+      <ContentCardSkeleton key={`skeleton-${i}`} />
+    ));
+    
+    return (
+      <div className={viewMode === 'list' ? 'content-grid-list-view space-y-2' : 'content-grid-card-view'}>
+        {skeletonCards}
+      </div>
+    );
+  }
+
   if (viewMode === 'list') {
     return (
-      <div className="space-y-2">
+      <div className="content-grid-list-view space-y-2">
         {content.map((item) => {
           const isSelected = selectedArtifact && selectedArtifact.id === item.id;
           return (
             <div 
               key={item.id} 
-              className={`bg-white rounded-lg border p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
-                isSelected 
-                  ? 'border-yellow-400 border-2 bg-yellow-50' 
-                  : 'border-wood-light/30 hover:border-brass/40'
-              }`}
+              className={`content-list-item ${isSelected ? 'selected' : ''}`}
               onClick={() => onArtifactSelect(item)}
             >
             <div className="flex items-center justify-between">
@@ -94,6 +184,14 @@ const ContentGrid = ({
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-brass/10 text-brass border border-brass/20">
                     {item.category}
                   </span>
+                  {/* Social Media Post Tags - to the right of category */}
+                  {item.category === 'social-media-posts' && (
+                    <TagBoxesPost
+                      postTags={item.post_tags || []}
+                      contentId={item.id}
+                      onPostTagsChange={onTagsChange}
+                    />
+                  )}
                 </div>
                 
                 <div className="flex items-center gap-4 text-sm text-wood-dark/70 mt-1">
@@ -107,24 +205,16 @@ const ContentGrid = ({
                   </span>
                 </div>
                 
-                {item.tags && item.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {item.tags.slice(0, 4).map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-wood-light/20 text-wood-dark border border-wood-light/30"
-                      >
-                        <Tag size={10} className="mr-1" />
-                        {tag}
-                      </span>
-                    ))}
-                    {item.tags.length > 4 && (
-                      <span className="text-xs text-wood-dark/60 px-2 py-1">
-                        +{item.tags.length - 4} more
-                      </span>
-                    )}
-                  </div>
-                )}
+                {/* Interactive Tag Editing */}
+                <div className="mt-2">
+                  <TagBoxes
+                    tags={item.tags || []}
+                    category={item.category}
+                    compact={true}
+                    contentId={item.id}
+                    onTagsChange={onTagsChange}
+                  />
+                </div>
               </div>
               
               <div className="flex items-center gap-2 ml-4">
@@ -133,7 +223,7 @@ const ContentGrid = ({
                     e.stopPropagation();
                     onContentAction('view', item);
                   }}
-                  className="p-2 text-wood-dark/60 hover:text-brass hover:bg-brass/10 rounded-lg transition-colors"
+                  className="action-btn-view"
                   title="View"
                 >
                   <Eye size={16} />
@@ -143,7 +233,7 @@ const ContentGrid = ({
                     e.stopPropagation();
                     onContentAction('edit', item);
                   }}
-                  className="p-2 text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  className="action-btn-edit"
                   title="Edit"
                 >
                   <Edit3 size={16} />
@@ -151,9 +241,19 @@ const ContentGrid = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleAddToActiveResources(item);
+                  }}
+                  className="action-btn-add-resources"
+                  title="Add to Active Resources"
+                >
+                  <BookPlus size={16} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onContentAction('download', item);
                   }}
-                  className="p-2 text-wood-dark/60 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  className="action-btn-download"
                   title="Download"
                 >
                   <Download size={16} />
@@ -163,7 +263,7 @@ const ContentGrid = ({
                     e.stopPropagation();
                     onContentAction('delete', item);
                   }}
-                  className="p-2 text-wood-dark/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="action-btn-delete"
                   title="Delete"
                 >
                   <Trash2 size={16} />
@@ -179,26 +279,32 @@ const ContentGrid = ({
 
   // Card view
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+    <div className="content-grid-card-view">
       {content.map((item) => {
         const isSelected = selectedArtifact && selectedArtifact.id === item.id;
         return (
         <div 
           key={item.id} 
-          className={`bg-white rounded-lg border shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer ${
-            isSelected 
-              ? 'border-yellow-400 border-2 bg-yellow-50' 
-              : 'border-wood-light/30 hover:border-brass/40'
-          }`}
+          className={`content-grid-card ${isSelected ? 'selected' : ''}`}
           onClick={() => onArtifactSelect(item)}
         >
           {/* Card Header */}
-          <div className="p-3 md:p-4 border-b border-wood-light/20">
+          <div className="content-card-header">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <h3 className="font-cormorant font-semibold text-wood-dark text-base md:text-lg leading-tight mb-2 truncate" title={item.title}>
-                  {item.title || 'Untitled'}
-                </h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-cormorant font-semibold text-wood-dark text-base md:text-lg leading-tight truncate flex-1" title={item.title}>
+                    {item.title || 'Untitled'}
+                  </h3>
+                  {/* Social Media Post Tags - next to title */}
+                  {item.category === 'social-media-posts' && (
+                    <TagBoxesPost
+                      postTags={item.post_tags || []}
+                      contentId={item.id}
+                      onPostTagsChange={onTagsChange}
+                    />
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-sm text-wood-dark/70">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-brass/10 text-brass border border-brass/20">
                     {item.category}
@@ -210,7 +316,7 @@ const ContentGrid = ({
           </div>
 
           {/* Card Content */}
-          <div className="p-3 md:p-4">
+          <div className="content-card-body">
             <div className="text-sm text-wood-dark/80 leading-relaxed mb-3">
               {item.content ? (
                 <MarkdownRenderer content={truncateContent(item.content)} />
@@ -219,36 +325,16 @@ const ContentGrid = ({
               )}
             </div>
 
-            {/* Tags */}
-            {item.category === 'social-media-posts' ? (
-              <TagBoxesPost
+            {/* Regular Tag Editing - for all categories including social-media-posts */}
+            <div className="mb-3">
+              <TagBoxes
                 tags={item.tags || []}
-                postTags={item.post_tags || []}
+                category={item.category}
+                compact={true}
                 contentId={item.id}
                 onTagsChange={onTagsChange}
-                loading={updatingTags.has(item.id)}
-                compact={true}
               />
-            ) : (
-              item.tags && item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {item.tags.slice(0, 4).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-wood-light/20 text-wood-dark border border-wood-light/30"
-                    >
-                      <Tag size={10} className="mr-1" />
-                      {tag}
-                    </span>
-                  ))}
-                  {item.tags.length > 4 && (
-                    <span className="text-xs text-wood-dark/60 px-2 py-1">
-                      +{item.tags.length - 4} more
-                    </span>
-                  )}
-                </div>
-              )
-            )}
+            </div>
 
             {/* Date */}
             <div className="text-xs text-wood-dark/60 mb-3 flex items-center gap-1">
@@ -258,14 +344,14 @@ const ContentGrid = ({
           </div>
 
           {/* Card Actions */}
-          <div className="px-3 md:px-4 py-3 bg-wood-light/10 border-t border-wood-light/20 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+          <div className="content-card-actions">
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onContentAction('view', item);
                 }}
-                className="p-2 text-wood-dark/60 hover:text-brass hover:bg-brass/10 rounded-lg transition-colors"
+                className="action-btn-view"
                 title="View"
               >
                 <Eye size={16} />
@@ -275,10 +361,20 @@ const ContentGrid = ({
                   e.stopPropagation();
                   onContentAction('edit', item);
                 }}
-                className="p-2 text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="action-btn-edit"
                 title="Edit"
               >
                 <Edit3 size={16} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddToActiveResources(item);
+                }}
+                className="action-btn-add-resources"
+                title="Add to Active Resources"
+              >
+                <BookPlus size={16} />
               </button>
             </div>
             
@@ -292,7 +388,7 @@ const ContentGrid = ({
                   e.stopPropagation();
                   onContentAction('share', item);
                 }}
-                className="p-2 text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="action-btn-share"
                 title="Share"
               >
                 <Share2 size={16} />
@@ -302,7 +398,7 @@ const ContentGrid = ({
                   e.stopPropagation();
                   onContentAction('delete', item);
                 }}
-                className="p-2 text-wood-dark/60 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="action-btn-delete"
                 title="Delete"
               >
                 <Trash2 size={16} />
@@ -312,6 +408,14 @@ const ContentGrid = ({
         </div>
         );
       })}
+      
+      {/* Active Resources Toast */}
+      <ActiveResourcesToast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={closeToast}
+      />
     </div>
   );
 };

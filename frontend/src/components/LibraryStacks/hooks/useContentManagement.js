@@ -72,12 +72,30 @@ export const useContentManagement = () => {
           const content = response.items || [];
           return { categoryKey, count: content.length, success: true };
         } catch (err) {
-          errorHandler.handleError(err, `Loading ${categoryKey} count`, { 
+          // Enhanced error handling with user-friendly messages
+          const errorContext = {
+            operation: `Loading ${categoryKey} count`,
+            category: categoryKey,
+            retryable: err.retryable !== false
+          };
+          
+          errorHandler.handleError(err, errorContext.operation, { 
             critical: false, 
             errorKey: `category-${categoryKey}`,
-            showToast: false 
+            showToast: false,
+            context: errorContext
           });
-          return { categoryKey, count: 0, success: false };
+          
+          return { 
+            categoryKey, 
+            count: 0, 
+            success: false, 
+            error: {
+              type: err.type || 'UNKNOWN_ERROR',
+              message: err.message,
+              userAction: err.userAction || 'Try refreshing the page'
+            }
+          };
         }
       });
       
@@ -425,6 +443,18 @@ export const useContentManagement = () => {
           fullItem = await apiService.getContent(item.id);
         } catch (fetchError) {
           console.warn('Could not fetch complete content, using available data:', fetchError);
+          
+          // Enhanced error handling for content retrieval
+          if (fetchError.type === 'NOT_FOUND') {
+            throw new Error('Content not found. It may have been deleted.');
+          } else if (fetchError.type === 'NETWORK_ERROR') {
+            throw new Error('Network error. Please check your connection and try again.');
+          } else if (fetchError.type === 'UNAUTHORIZED') {
+            throw new Error('Authentication required. Please log in again.');
+          }
+          
+          // For other errors, continue with available data but warn user
+          console.warn('Using partial content data for download due to:', fetchError.message);
           fullItem = item;
         }
       }
@@ -495,9 +525,36 @@ export const useContentManagement = () => {
       console.log('✅ Download initiated with AI analysis included');
     } catch (error) {
       console.error('Download failed:', error);
-      errorHandler.handleError(error, 'Downloading content', { 
+      
+      // Enhanced error handling with user-friendly messages
+      const errorContext = {
+        operation: 'Downloading content',
+        contentId: item.id,
+        contentTitle: item.title,
+        format: format,
+        retryable: error.retryable !== false
+      };
+      
+      // Provide specific error messages based on error type
+      let userMessage = error.message;
+      if (error.type === 'NETWORK_ERROR') {
+        userMessage = 'Download failed due to network issues. Please check your connection and try again.';
+      } else if (error.type === 'NOT_FOUND') {
+        userMessage = 'Content not found. It may have been deleted or moved.';
+      } else if (error.type === 'UNAUTHORIZED') {
+        userMessage = 'Authentication required. Please log in again to download content.';
+      } else if (!userMessage || userMessage === 'An unexpected error occurred') {
+        userMessage = `Failed to download "${item.title}". Please try again or contact support.`;
+      }
+      
+      errorHandler.handleError({
+        ...error,
+        message: userMessage
+      }, errorContext.operation, { 
         critical: false, 
-        errorKey: `download-${item.id}` 
+        errorKey: `download-${item.id}`,
+        context: errorContext,
+        showToast: true // Show toast for download failures
       });
     }
   };

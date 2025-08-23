@@ -123,6 +123,111 @@
     @apply bg-orange-200/60 border-yellow-500;
   }
   
+  /* ===================================
+     CONTENT GRID SYSTEM
+     =================================== */
+  
+  /* Content Grid Base Classes */
+  .content-grid {
+    @apply grid gap-4 md:gap-6;
+  }
+  
+  .content-grid-card-view {
+    @apply content-grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+  
+  .content-grid-list-view {
+    @apply content-grid grid-cols-1;
+  }
+  
+  /* Content Card Classes */
+  .content-grid-card {
+    @apply bg-white rounded-lg border shadow-sm hover:shadow-lg 
+           transition-all duration-200 overflow-hidden cursor-pointer
+           border-wood-light/30 hover:border-brass/40
+           flex flex-col min-h-80;
+  }
+  
+  .content-grid-card.selected {
+    @apply border-yellow-400 border-2 bg-yellow-50;
+  }
+  
+  .content-list-item {
+    @apply bg-white rounded-lg border p-4 shadow-sm hover:shadow-md 
+           transition-all duration-200 cursor-pointer
+           border-wood-light/30 hover:border-brass/40;
+  }
+  
+  .content-list-item.selected {
+    @apply border-yellow-400 border-2 bg-yellow-50;
+  }
+  
+  /* Content Card Layout */
+  .content-card-header {
+    @apply p-3 md:p-4 border-b border-wood-light/20;
+  }
+  
+  .content-card-body {
+    @apply p-3 md:p-4 flex-1 overflow-hidden;
+  }
+  
+  .content-card-actions {
+    @apply px-3 md:px-4 py-3 bg-wood-light/10 border-t border-wood-light/20 
+           flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-1;
+  }
+  
+  /* Loading Skeleton Classes */
+  .skeleton {
+    @apply bg-gray-200 animate-pulse;
+  }
+  
+  .content-card-skeleton {
+    @apply bg-white rounded-lg border shadow-sm 
+           border-wood-light/30 flex flex-col min-h-80;
+  }
+  
+  .skeleton-header {
+    @apply p-3 md:p-4 border-b border-wood-light/20;
+  }
+  
+  .skeleton-body {
+    @apply p-3 md:p-4 flex-1 space-y-3;
+  }
+  
+  .skeleton-actions {
+    @apply px-3 md:px-4 py-3 bg-wood-light/10 border-t border-wood-light/20 
+           flex items-center justify-between;
+  }
+
+  /* Action Button Classes */
+  .action-btn {
+    @apply p-2 rounded-lg transition-colors;
+  }
+  
+  .action-btn-view {
+    @apply action-btn text-wood-dark/60 hover:text-brass hover:bg-brass/10;
+  }
+  
+  .action-btn-edit {
+    @apply action-btn text-wood-dark/60 hover:text-wood-dark hover:bg-wood-light/10;
+  }
+  
+  .action-btn-share {
+    @apply action-btn text-wood-dark/60 hover:text-brass-light hover:bg-brass/5;
+  }
+  
+  .action-btn-delete {
+    @apply action-btn text-wood-dark/60 hover:text-red-600 hover:bg-red-50;
+  }
+
+  .action-btn-add-resources {
+    @apply action-btn text-wood-dark/60 hover:text-blue-600 hover:bg-blue-50;
+  }
+  
+  .action-btn-download {
+    @apply action-btn text-wood-dark/60 hover:text-green-600 hover:bg-green-50;
+  }
+  
   /* Chat Interface */
   .chat-message {
     @apply bg-yellow-100 border-l-4 border-yellow-600 rounded-r-lg p-4 mb-4;

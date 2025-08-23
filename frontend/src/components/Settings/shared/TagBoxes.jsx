@@ -8,12 +8,52 @@ const TagBoxes = ({ tags = [], category, compact = false, contentId, onTagsChang
   const [hasChanges, setHasChanges] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [customTags, setCustomTags] = useState([]);
+
+  // Load custom tags from localStorage
+  const loadCustomTags = () => {
+    try {
+      const saved = localStorage.getItem('customTags');
+      const customTagsArray = saved ? JSON.parse(saved) : [];
+      setCustomTags(customTagsArray);
+      return customTagsArray;
+    } catch (error) {
+      console.error('Failed to load custom tags from localStorage:', error);
+      setCustomTags([]);
+      return [];
+    }
+  };
 
   // Update current tags when props change
   useEffect(() => {
     setCurrentTags(tags);
     setHasChanges(false);
   }, [tags]);
+
+  // Load custom tags on mount and listen for localStorage changes
+  useEffect(() => {
+    loadCustomTags();
+    
+    // Listen for storage events (when localStorage changes in other tabs/windows)
+    const handleStorageChange = (e) => {
+      if (e.key === 'customTags') {
+        loadCustomTags();
+      }
+    };
+    
+    // Listen for custom event (when localStorage changes in same tab)
+    const handleCustomTagsUpdate = () => {
+      loadCustomTags();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('customTagsUpdated', handleCustomTagsUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('customTagsUpdated', handleCustomTagsUpdate);
+    };
+  }, []);
 
   // Organize current tags by category
   const organizedTags = organizeTagsByCategory(currentTags);
@@ -128,15 +168,9 @@ const TagBoxes = ({ tags = [], category, compact = false, contentId, onTagsChang
     // Get prescriptive tags from constants
     let categoryTags = prescriptiveTags[categoryKey] || [];
     
-    // For custom category, also load from localStorage
+    // For custom category, use the state that's kept in sync with localStorage
     if (categoryKey === 'custom') {
-      try {
-        const savedCustomTags = localStorage.getItem('customTags');
-        const customTags = savedCustomTags ? JSON.parse(savedCustomTags) : [];
-        categoryTags = [...categoryTags, ...customTags];
-      } catch (error) {
-        console.error('Failed to load custom tags from localStorage:', error);
-      }
+      categoryTags = [...categoryTags, ...customTags];
     }
     
     return categoryTags;
@@ -187,7 +221,7 @@ const TagBoxes = ({ tags = [], category, compact = false, contentId, onTagsChang
               
               {/* Tag Selection Dropdown */}
               {isDropdownOpen && (
-                <div className={`absolute top-full left-0 mt-1 bg-library-dark border border-brass/30 rounded-md shadow-lg z-50 ${compact ? 'min-w-[180px]' : 'min-w-[200px]'}`}>
+                <div className={`absolute bottom-full left-0 mb-1 bg-library-dark border border-brass/30 rounded-md shadow-lg z-50 ${compact ? 'min-w-[180px]' : 'min-w-[200px]'}`}>
                   <div className="p-2">
                     <div className="text-xs text-brass-light mb-2 font-medium">
                       {category.name}

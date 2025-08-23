@@ -73,15 +73,10 @@ const FilterControls = ({
           <option value="title">🔤 Title (A-Z)</option>
           <option value="category">📁 Category (A-Z)</option>
         </select>
-        <div className="text-xs text-wood-dark/60">
-          {sortMode === 'date' && '⬇️ Newest first, then by title'}
-          {sortMode === 'title' && '⬇️ A-Z, then by date'}
-          {sortMode === 'category' && '⬇️ A-Z, then by title'}
-        </div>
       </div>
 
       {/* Multi-Tag Filters */}
-      <div className="space-y-2">
+      <div className="space-y-2 mt-2">
         <span className="text-sm font-medium text-wood-dark">Tag Filters:</span>
         
         {/* Grid layout for perfect alignment */}

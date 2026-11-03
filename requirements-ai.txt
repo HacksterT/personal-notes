@@ -6,7 +6,10 @@ transformers==5.10.1
 # transformers 5.10.1 requires tokenizers>=0.22.0,<=0.23.0. 0.22.2 is the
 # newest non-yanked release inside that range.
 tokenizers==0.22.2
-datasets==3.0.1
+datasets==5.0.1
+# datasets 5.0.1 requires pyarrow>=21. pyarrow 26 refuses to import on the
+# numpy==1.26.4 pin in this file. 25.0.1 is the newest pyarrow that still imports.
+pyarrow==25.0.1
 # GHSA-4j2p-28q2-5m79 (CVE-2026-69112): no patched release. Affected range is
 # <=1.14.0 and GitHub lists patched versions as none. 1.15.0 is outside that
 # range, but its release notes do not include a weight_map fix and the advisory

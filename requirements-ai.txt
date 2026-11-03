@@ -35,5 +35,5 @@ requests==2.33.0
 loguru==0.7.2
 
 # Development tools
-pytest==8.4.1
+pytest==9.0.3
 black==26.10.1
